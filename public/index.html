@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reactive Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="/css/tailwind.css" rel="stylesheet">
+  <script src="https://unpkg.com/@vue/reactivity@3.5.22/dist/reactivity.global.js"></script>
+  <script src="/js/lib.js"></script>
+  <script src="/js/main.js"></script>
+</head>
+
+<body 
+  class="bg-linear-to-b overflow-auto from-slate-100 via-slate-50 to-amber-50 p-5 text-slate-900 sm:p-8" 
+  style="font-family: 'Space Grotesk', sans-serif;">
+  <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+    <div class="absolute -left-16 top-10 h-56 w-56 rounded-full bg-sky-200/50 blur-3xl"></div>
+    <div class="absolute right-0 top-1/3 h-72 w-72 rounded-full bg-amber-200/45 blur-3xl"></div>
+    <div class="absolute bottom-0 left-1/3 h-52 w-52 rounded-full bg-emerald-200/40 blur-3xl"></div>
+  </div>
+
+  <main class="animate-page-entry mx-auto max-w-6xl space-y-6">
+    <section class="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-xl shadow-slate-300/30 backdrop-blur-sm sm:p-8">
+      <div class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div class="max-w-2xl space-y-3">
+          <p class="text-xs font-semibold tracking-[0.22em] text-slate-500">REACTIVE UI LAB</p>
+          <h1 class="text-3xl font-bold leading-tight text-slate-900 sm:text-5xl">Dashboard reactivo con componentes reutilizables</h1>
+          <p class="text-sm text-slate-600 sm:text-base">Maqueta profesional para probar bindings, eventos y renderizado dinámico con una estética limpia y moderna.</p>
+        </div>
+        <div class="w-full rounded-2xl border border-slate-200 bg-slate-900 p-4 text-slate-100 shadow-lg sm:max-w-xs">
+          <p class="text-xs tracking-widest text-slate-400">GLOBAL COUNTER</p>
+          <p id="contador" class="mt-2 text-4xl font-bold">0</p>
+          <button on-click="incrementCounter:A:B:C" class="tool-bar-button mt-4 w-full justify-center border-slate-700 bg-slate-800 text-white hover:bg-slate-700">
+            Incrementar global
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
+      <div class="space-y-6">
+        <div data-component="app-counter" class="w-full"></div>
+        <div data-component="app-users-panel" class="w-full"></div>
+      </div>
+
+      <aside class="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur-sm">
+        <h2 class="text-lg font-bold text-slate-900">Live Feed</h2>
+        <p class="mt-1 text-sm text-slate-600">Vista resumida de usuarios activos en tiempo real.</p>
+        <ul id="user-list" class="mt-4 space-y-2"></ul>
+      </aside>
+    </section>
+
+    <section class="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur-sm">
+      <header class="mb-4 flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">Directorio editable</h2>
+          <p class="text-sm text-slate-600">Listado reactivo con eliminación de usuarios desde el template.</p>
+        </div>
+        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700" data-bind="par | upper"></span>
+      </header>
+
+      <div class="grid gap-3" data-each="user in estado.users">
+        <article data-bind="attr.id:user.id | prefix:container-" class="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-[1fr_auto] sm:items-center">
+          <div class="space-y-1">
+            <p class="text-xs font-semibold tracking-wider text-slate-500">USUARIO #<span data-bind="user.id"></span></p>
+            <p class="text-base font-semibold text-slate-900" data-bind="user.name"></p>
+            <p class="text-xs text-slate-500" data-bind="show:last">Ultimo elemento visible</p>
+          </div>
+          <button class="tool-bar-button border-slate-200" on-click="deleteUser:$user.id:$index">
+            Eliminar
+          </button>
+        </article>
+      </div>
+    </section>
+  </main>
+
+</body>
+
+</html>

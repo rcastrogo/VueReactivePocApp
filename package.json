@@ -1,0 +1,17 @@
+{
+  "name": "vue-reactive-poc-app",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "npm-run-all --parallel css:watch serve",
+    "serve": "browser-sync start --server public --files public/**/*.html,public/css/**/*.css,public/js/**/*.js --port 3000 --no-open --reload-debounce 200",
+    "css:watch": "npx @tailwindcss/cli -i ./public/css/app.css -o ./public/css/tailwind.css --watch",
+    "css:build": "npx @tailwindcss/cli -i ./public/css/app.css -o ./public/css/tailwind.css --minify"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.2",
+    "browser-sync": "^3.0.3",
+    "npm-run-all": "^4.1.5",
+    "tailwindcss": "^4.3.2"
+  }
+}
