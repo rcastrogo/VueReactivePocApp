@@ -1,5 +1,19 @@
 # HTML + JavaScript + Tailwind + Vue Reactivity (CDN)
 
+## enlace
+
+https://vue-reactive-poc-app.vercel.app/
+https://rcg-vanillajs-lib.vercel.app/
+https://rcg-framework.vercel.app/
+https://rafael-castro.vercel.app/
+https://rafael-castro-angular2026.vercel.app/
+https://rcastrogo.github.io/ReactApp2026/
+https://rcastrogo.github.io/React2025/
+
+
+
+
+
 ## Requisitos
 - Node.js 18+
 
