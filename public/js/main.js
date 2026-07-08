@@ -5,7 +5,8 @@ const { reactive, effect, computed, isRef } = VueReactivity;
   const COUNTER_COMPONENT_NAME = 'app-counter';
   const USERS_PANEL_COMPONENT_NAME = 'app-users-panel';
 
-  const Counter = rcg.defineComponent(COUNTER_COMPONENT_NAME, () => {
+  const Counter = rcg.defineComponent(COUNTER_COMPONENT_NAME, (ctx, emit, props) => {
+
     const template = `
       <section class="rounded-2xl border border-slate-200 bg-white/95 p-5 shadow-sm backdrop-blur-sm">
         <header class="flex items-center justify-between gap-4">
@@ -23,7 +24,7 @@ const { reactive, effect, computed, isRef } = VueReactivity;
           </div>
           <div class="rounded-xl bg-amber-50 p-3">
             <p class="text-xs text-amber-700">Global</p>
-            <p class="text-3xl font-bold text-amber-900" data-bind="estado.cuenta"></p>
+            <p class="text-3xl font-bold text-amber-900" data-bind="scope.estado.cuenta"></p>
           </div>
         </div>
 
@@ -31,6 +32,8 @@ const { reactive, effect, computed, isRef } = VueReactivity;
           <button on-click="dec" class="tool-bar-button border-slate-200">Restar</button>
           <button on-click="inc" class="tool-bar-button border-slate-200">Sumar</button>
           <button on-click="reset" class="tool-bar-button border-slate-200">Reset local</button>
+          <button on-click="raiseEvent" class="tool-bar-button border-slate-200">Emit</button>
+          <div data-bind="props.par">dd ddd</div>
         </div>
       </section>
     `;
@@ -48,17 +51,23 @@ const { reactive, effect, computed, isRef } = VueReactivity;
       },
       reset() {
         state.count = 0;
+      },
+      raiseEvent() {
+        emit('info', state.count);
       }
     };
 
     return {
       template,
-      state,
+      ctx: { 
+        state 
+      },
       handlers
     };
   });
 
-  const UsersPanel = rcg.defineComponent(USERS_PANEL_COMPONENT_NAME, ({ ctx }) => {
+  const UsersPanel = rcg.defineComponent(USERS_PANEL_COMPONENT_NAME, (ctx, emit, props) => {
+
     const usersCount = computed(() => ctx.estado.users.length);
     const firstUser = computed(() => ctx.estado.users[0]?.name || 'Sin usuarios');
     const lastUser = computed(() => ctx.estado.users.at(-1)?.name || 'Sin usuarios');
@@ -105,6 +114,7 @@ const { reactive, effect, computed, isRef } = VueReactivity;
         lastUser
       }
     };
+
   });
 
   rcg.registerComponent(COUNTER_COMPONENT_NAME, Counter);
@@ -148,14 +158,19 @@ function initAll() {
       estado.cuenta++;
     },
     deleteUser: function (e) {
-      const [ id, index ] = e.arg;
+      const [id, index] = e.arg;
       console.log(id, index);
       estado.users = estado.users.filter((user) => user.id != id);
     },
     remove: function () {
       estado.cuenta = Math.max(0, estado.cuenta - 1);
     },
-    refrescarUsuarios
+    refrescarUsuarios,
+    showAlert(e) {
+      const { detail, arg } = e;
+      console.log(e);
+      alert(detail);
+    }
   }
 
   rcg.hydrate(document, { estado, par, ...handlers });

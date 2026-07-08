@@ -81,7 +81,7 @@ const rcg = (function () {
     });
   }
 
-  function dataEachTask(el, ctx, attrValue, tasks) {
+  function parseDataEachDirective(el, ctx, attrValue, tasks) {
     el.removeAttribute('data-each');
     const [itemName, , ...listParts] = attrValue.split(' '); // "item in tasks"
     const dataSource = listParts.join(' ').trim();
@@ -101,11 +101,81 @@ const rcg = (function () {
     }
   }
 
-  function dataComponentTask(el, ctx, attrValue, tasks) {
+  function parseDataComponentDirective(el, ctx, attrValue, tasks) {
     el.removeAttribute('data-component');
+
+    const propsData = {};
+    const eventsData = {};
     const children = [...el.children];
-    const task = { op: 'data-component', ctx, el, attrValue, children }
+    // ====================================================
+    // Extraer atributos [input] y (output)
+    // ====================================================
+    Array.from(el.attributes)
+         .forEach(attr => {
+      let match = attr.name.match(/^\[(.+)\]$/);
+      if (match) {
+        const propName = toCamelCase(match[1]);
+        propsData[propName] = attr.value;
+        el.removeAttribute(attr.name);
+        return;
+      }
+      match = attr.name.match(/^\((.+)\)$/);
+      if (match) {
+        const eventName = toCamelCase(match[1]);
+        eventsData[eventName] = attr.value;
+        el.removeAttribute(attr.name);
+      }
+    });
+    const task = { 
+      op: 'data-component', 
+      ctx, 
+      el, 
+      attrValue, 
+      children, 
+      propsData, 
+      eventsData
+    }
     tasks.push(task);
+  }
+
+  function parseOnDirective(target, ctx, attrName, attrValue) {
+    target.removeAttribute(attrName);
+    const eventName = attrName.replace('on-', '');
+    const [handlerName, ...eventArgs] = attrValue.split(':');
+    const handler = ctx[handlerName] ||
+      ctx.handlers?.[handlerName] ||
+      (() => console.log(attrName));
+
+    if (typeof handler === 'function') {
+      const resolvedArgs = resolveArgs(eventArgs, ctx);
+      target.addEventListener(eventName, (e) => {
+        handler.call(ctx, { el: target, ev: e, ...resolvedArgs });
+      });
+    }
+  }
+
+  function dispatchDirective(target, ctx, attr, tasks) {
+    const attrName = attr.name;
+    const attrValue = attr.value;
+    if (attrName === 'data-each') {
+      parseDataEachDirective(target, ctx, attrValue, tasks);
+      return;
+    }
+    if (attrName === 'data-component') {
+      parseDataComponentDirective(target, ctx, attrValue, tasks);
+      return;
+    }
+    if (attrName === 'on-publish') {
+      target.removeAttribute(attrName);
+      return;
+    }
+    if (attrName === 'data-bind') {
+      dataBind(target, ctx);
+      return;
+    }
+    if (attrName.startsWith('on-')) {
+      parseOnDirective(target, ctx, attrName, attrValue);
+    }
   }
 
   function hydrate(root = document, ctx) {
@@ -114,82 +184,41 @@ const rcg = (function () {
     const tasks = [];
     while (el) {
       Array.from(el.attributes || []).forEach(attr => {
-
         const target = el;
-        const attrName = attr.name;
-        const attrValue = attr.value;
-
-        // ========================================================================
-        // data-each
-        // ========================================================================
-        if (attrName === 'data-each')
-          dataEachTask(target, ctx, attrValue, tasks);
-        // ========================================================================
-        // data-component
-        // ========================================================================
-        if (attrName === 'data-component')
-          dataComponentTask(target, ctx, attrValue, tasks)
-        // ========================================================================
-        // data-publish
-        // ========================================================================
-        // if (attrName === 'on-publish') {
-        //   target.removeAttribute(attrName);
-        // }
-        // ========================================================================
-        // data-bind
-        // ========================================================================
-        else if (attrName === 'data-bind')
-          dataBind(target, ctx);
-        // ========================================================================
-        // on-*
-        // ========================================================================
-        else if (attrName.startsWith('on-')) {
-          target.removeAttribute(attrName);
-          const eventName = attrName.replace('on-', '');
-          const [handlerName, ...eventArgs] = attrValue.split(':');
-          const handler = ctx[handlerName] ||
-            ctx.handlers?.[handlerName] ||
-            (() => console.log(attrName));
-          if (typeof handler === 'function') {
-            const resolvedArgs = resolveArgs(eventArgs, ctx);
-            target.addEventListener(eventName, (e) => {
-              handler.call(ctx, { el: target, ev: e, ...resolvedArgs });
-            });
-          }
-        }
+        dispatchDirective(target, ctx, attr, tasks);
       });
       el = walker.nextNode();
     }
-    tasks.forEach((t) => {
-      if (t.op === 'data-component')
-        createComponent(t);
-      else if (t.op === 'data-each')
-        createRepeater(t);
+    tasks.forEach((task) => {
+      if (task.op === 'data-component') createComponent(task);
+      else if (task.op === 'data-each') createRepeater(task);
     });
     return root;
   }
 
   function createComponent(task) {
-    const component = components[task.attrValue];
+    const {el, children, attrValue: name} = task;
+    const component = components[name];
     if (!component) {
-      task.el.innerHTML = `data-component ${task.attrValue} no encontrado`;
+      el.innerHTML = `data-component ${name} no encontrado`;
       return;
     }
-    task.el.replaceWith(
+    el.replaceWith(
       component(task)
     );
   }
 
   function createRepeater(task) {
+    const {el, children, itemName, ctx, reactive, dataSource} = task;
     const render = (items = []) => {
-      task.el.replaceChildren();
+      el.replaceChildren();
       items.forEach((item, index) => {
-        task.children.forEach(node => {
+        children.forEach(node => {
           const clone = node.cloneNode(true);
           const data = {};
-          data[task.itemName] = item;
+          data[itemName] = item;
           hydrate(clone, {
-            ...task.ctx,
+            ...ctx,
             ...data,
             index,
             first: index === 0,
@@ -197,15 +226,15 @@ const rcg = (function () {
             even: index % 2 === 0,
             odd: index % 2 !== 0
           });
-          task.el.appendChild(clone);
+          el.appendChild(clone);
         });
       });
     };
-    if (task.reactive) {
-      effect(() => render(resolve(task.dataSource, task.ctx)));
+    if (reactive) {
+      effect(() => render(resolve(dataSource, ctx)));
       return;
     }
-    render(task.dataSource);
+    render(dataSource);
   }
 
   function resolve(path, ctx) {
@@ -220,6 +249,10 @@ const rcg = (function () {
       return a;
     });
     return { arg: resolved, eventArgs };
+  }
+
+  function toCamelCase(str) {
+    return str.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
   }
 
   function onReady(fn) {
@@ -240,42 +273,83 @@ const rcg = (function () {
       element.id = host.id;
       host.removeAttribute('id');
     }
-
     if (host.className)
       element.className = `${host.className} ${element.className}`.trim();
-
     if (host.style.cssText)
       element.style.cssText = [host.style.cssText, element.style.cssText].filter(Boolean).join(';');
   }
 
+  function createPropsProxy(propsData, context) {
+    const props = {};
+    for (const [key, path] of Object.entries(propsData ?? {})) {
+      Object.defineProperty(props, key, {
+        enumerable: true,
+        get() {
+          return resolve(path, context);
+        }
+      });
+    }
+    return props;
+  }
+
+  function createEmit(eventsData, context) {
+    return function emit(eventName, detail = null) {
+      const handlerStr = eventsData?.[eventName];
+      if (!handlerStr) return;
+
+      const [handlerName, ...eventArgs] = handlerStr.split(':');
+      const handler = context[handlerName] || context.handlers?.[handlerName];
+
+      if (typeof handler === 'function') {
+        const resolvedArgs = resolveArgs(eventArgs, context);
+        handler.call(context, { detail, ...resolvedArgs });
+        return;
+      }
+
+      console.warn(`Handler "${handlerName}" no encontrado en el padre para el evento "${eventName}"`);
+    };
+  }
+
+  function buildHydrationContext(baseContext, definition, props, emit, host, element, children) {
+    return {
+      scope: baseContext,
+      ...definition.ctx,
+      props,
+      emit,
+      // Solo se añadirán si existen, manteniendo el objeto limpio
+      ...(definition.state !== undefined && { state: definition.state }),
+      ...(definition.handlers !== undefined && { handlers: definition.handlers }),
+      element,
+      host,
+      children
+    };
+  }
+
   function defineComponent(name, setup) {
-    return function component(task) {
-      const definition = setup(task) || {};
+    return function component(opt) {
+      const {propsData, eventsData, ctx: parentContext, children, el: hostElement} = opt;
+      const props = createPropsProxy(propsData, parentContext);
+      const emit = createEmit(eventsData, parentContext);
+      const definition = setup(parentContext, emit, props) || {};
       const template = definition.template || '<div></div>';
       const element = typeof template === 'string' ? buildElement(template) : template;
 
-      const ctx = {
-        ...task.ctx,
-        ...definition.ctx,
-      };
+      inheritHostAttributes(hostElement, element);
 
-      if (definition.state !== undefined)
-        ctx.state = definition.state;
+      const hydrationContext = buildHydrationContext(
+        parentContext,
+        definition,
+        props,
+        emit,
+        hostElement,
+        element,
+        children
+      );
 
-      if (definition.handlers !== undefined)
-        ctx.handlers = definition.handlers;
+      element.__instance = hydrationContext;
+      if (name) element.setAttribute(name, '');
 
-      inheritHostAttributes(task.el, element);
-
-      ctx.element = element;
-      ctx.host = task.el;
-      ctx.children = task.children;
-
-      element.__instance = ctx;
-      if (name)
-        element.setAttribute(name, '');
-
-      return hydrate(element, ctx);
+      return hydrate(element, hydrationContext);
     };
   }
 
