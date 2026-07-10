@@ -131,9 +131,13 @@ const users = [
   { id: 5, name: 'Carlos Perez' },
   { id: 6, name: 'Maria Sanchez' },
 ];
+const REFRESH_TIME = 10_000;
 
 const estado = reactive({
   cuenta: 0,
+  limite: 12,
+  loading: false,
+  autoRefreshAt: REFRESH_TIME,
   users: []
 });
 
@@ -143,14 +147,41 @@ function obtenerUsuariosAleatorios() {
   return mezclados.slice(0, cantidad);
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function initAll() {
 
   const elContador = document.getElementById('contador');
   const userList = document.getElementById('user-list');
 
   const par = computed(() => estado.cuenta % 2 === 0 ? 'par' : 'impar');
-  const refrescarUsuarios = () => {
+  const mod3 = computed(() => estado.cuenta % 3 === 0);
+  let refreshToken = 0;
+  let nextAutoRefreshAt = Date.now() + REFRESH_TIME;
+
+  const refrescarUsuarios = async () => {
+    nextAutoRefreshAt = Date.now() + REFRESH_TIME;
+    const token = ++refreshToken;
+    estado.loading = true;
+
+    const simulatedDelay = 1700 + Math.floor(Math.random() * 900);
+    await sleep(simulatedDelay);
+
+    if (token !== refreshToken) return;
     estado.users = obtenerUsuariosAleatorios();
+    estado.loading = false;
+  };
+
+  const schedulerTick = async () => {
+    const now = Date.now();
+    estado.autoRefreshAt = Math.max(0, nextAutoRefreshAt - now);
+
+    if (estado.loading || now < nextAutoRefreshAt) {
+      return;
+    }
+    await refrescarUsuarios();
   };
 
   const handlers = {
@@ -169,11 +200,11 @@ function initAll() {
     showAlert(e) {
       const { detail, arg } = e;
       console.log(e);
-      alert(detail);
+      alert(detail || arg[0]);
     }
   }
 
-  rcg.hydrate(document, { estado, par, ...handlers });
+  rcg.hydrate(document, { estado, par, mod3, ...handlers });
 
   effect(() => {
     userList.innerHTML = estado.users
@@ -188,10 +219,11 @@ function initAll() {
 
   effect(() => {
     elContador.textContent = `${estado.cuenta} (${par.value})`;
+    if(estado.cuenta === 15) refrescarUsuarios();
   });
 
   refrescarUsuarios();
-  setInterval(refrescarUsuarios, 5_000);
+  setInterval(schedulerTick, 200);
 
 }
 

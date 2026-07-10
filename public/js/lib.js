@@ -9,13 +9,23 @@ const rcg = (function () {
     upper: (val) => typeof val === 'string' ? val.toUpperCase() : val,
     lower: (val) => typeof val === 'string' ? val.toLowerCase() : val,
     fallback: (val, defaultVal) => (val === undefined || val === null || val === '') ? defaultVal : val,
-    prefix: (val, pref) => `${pref}${val}`
+    prefix: (val, pref) => `${pref}${val}`,
+    debug: (val) => {
+      console.log(val);
+      return val;
+    },
+    formatMiliseconds: (val) => {
+      const seconds = Number(val) / 1000;
+      return `${seconds.toFixed(1)} segundos`
+    }
   };
 
   const actions = {
     text: (el, value) => el.textContent = value,
     html: (el, value) => el.innerHTML = value,
-    class: (el, value) => el.className = value,                  // Overwrites classes
+    class: (el, value) => {
+      el.className = value ?? '';
+    },
     show: (el, value) => el.style.display = value ? '' : 'none', // Visibility toggle
     attr: (el, value, subTarget) => {                            // attr.href, attr.disabled
       if (value === false || value === null) el.removeAttribute(subTarget);
@@ -63,6 +73,13 @@ const rcg = (function () {
       effect(() => {
         // A. Navigate the context object to get the raw value
         let value = resolve(dataPathStr, context);
+        if (targetName === 'class') {
+          if (value === undefined) {
+            value = parseClassName(dataPathStr, context);
+          } else {
+            value = parseClassName(value, context);
+          }
+        }
         // B. Apply the pipe chain in order
         value = parsedPipes.reduce((currentVal, pipeDef) => {
           const pipeFunc = pipes[pipeDef.name];
@@ -79,6 +96,72 @@ const rcg = (function () {
         }
       });
     });
+  }
+
+  function parseOperand(valRaw, ctx) {
+    const val = valRaw.trim();
+    if (val === 'true') return true;
+    if (val === 'false') return false;
+    if (val === 'null') return null;
+    if (val === 'undefined') return undefined;
+    if (val !== '' && !isNaN(val)) return Number(val);
+    if ((val.startsWith("'") && val.endsWith("'")) ||
+      (val.startsWith('"') && val.endsWith('"'))) {
+      return val.slice(1, -1);
+    }
+    return resolve(val, ctx);
+  };
+
+  const CONDITION_OPERATORS = ['===', '!==', '>=', '<=', '==', '!=', '>', '<'];
+  function evaluateCondition(rawExpr, ctx) {
+    const expr = (rawExpr || '').trim();
+    if (!expr) return true;
+    const negated = expr.startsWith('!');
+    const target = (negated ? expr.slice(1) : expr).trim();
+    if (!target) return false;
+
+    const operator = CONDITION_OPERATORS.find((op) => target.includes(op));
+    if (!operator) {
+      const result = Boolean(parseOperand(target, ctx));
+      return negated ? !result : result;
+    }
+
+    const splitIndex = target.indexOf(operator);
+    const leftRaw = target.slice(0, splitIndex);
+    const rightRaw = target.slice(splitIndex + operator.length);
+    const left = parseOperand(leftRaw, ctx);
+    const right = parseOperand(rightRaw, ctx);
+    let result;
+    switch (operator) {
+      case '===': result = left === right; break;
+      case '!==': result = left !== right; break;
+      case '==': result = left == right; break;
+      case '!=': result = left != right; break;
+      case '>': result = left > right; break;
+      case '<': result = left < right; break;
+      case '>=': result = left >= right; break;
+      case '<=': result = left <= right; break;
+      default: result = false;
+    }
+    return negated ? !result : result;
+  };
+
+  function parseClassName(value, ctx) {
+    if (typeof value !== 'string') return '';
+    const classes = [];
+    value.split(/\r?\n/)
+      .map(part => part.trim())
+      .filter(Boolean)
+      .forEach((rule) => {
+        const exprIdx = rule.lastIndexOf('?');
+        const rawClass = (exprIdx === -1 ? rule : rule.slice(0, exprIdx)).trim();
+        const rawExpr = exprIdx === -1 ? '' : rule.slice(exprIdx + 1).trim();
+        const classText = rawClass.replace(/^['"]+|['"]+$/g, '').trim();
+        if (!classText) return;
+        if (!evaluateCondition(rawExpr, ctx)) return;
+        classes.push(...classText.split(/\s+/).filter(Boolean));
+      });
+    return [...new Set(classes)].join(' ');
   }
 
   function parseDataEachDirective(el, ctx, attrValue, tasks) {
@@ -111,28 +194,28 @@ const rcg = (function () {
     // Extraer atributos [input] y (output)
     // ====================================================
     Array.from(el.attributes)
-         .forEach(attr => {
-      let match = attr.name.match(/^\[(.+)\]$/);
-      if (match) {
-        const propName = toCamelCase(match[1]);
-        propsData[propName] = attr.value;
-        el.removeAttribute(attr.name);
-        return;
-      }
-      match = attr.name.match(/^\((.+)\)$/);
-      if (match) {
-        const eventName = toCamelCase(match[1]);
-        eventsData[eventName] = attr.value;
-        el.removeAttribute(attr.name);
-      }
-    });
-    const task = { 
-      op: 'data-component', 
-      ctx, 
-      el, 
-      attrValue, 
-      children, 
-      propsData, 
+      .forEach(attr => {
+        let match = attr.name.match(/^\[(.+)\]$/);
+        if (match) {
+          const propName = toCamelCase(match[1]);
+          propsData[propName] = attr.value;
+          el.removeAttribute(attr.name);
+          return;
+        }
+        match = attr.name.match(/^\((.+)\)$/);
+        if (match) {
+          const eventName = toCamelCase(match[1]);
+          eventsData[eventName] = attr.value;
+          el.removeAttribute(attr.name);
+        }
+      });
+    const task = {
+      op: 'data-component',
+      ctx,
+      el,
+      attrValue,
+      children,
+      propsData,
       eventsData
     }
     tasks.push(task);
@@ -154,9 +237,26 @@ const rcg = (function () {
     }
   }
 
+  function parseIfDirective(el, ctx, expression, tasks) {
+    const template = el.cloneNode(true);
+    template.removeAttribute('data-if');
+    el.removeAttribute('data-if');
+    tasks.push({
+      op: 'data-if',
+      el,
+      ctx,
+      expression,
+      template
+    });
+  }
+
   function dispatchDirective(target, ctx, attr, tasks) {
     const attrName = attr.name;
     const attrValue = attr.value;
+    if (attrName === 'data-if') {
+      parseIfDirective(target, ctx, attrValue, tasks);
+      return;
+    }
     if (attrName === 'data-each') {
       parseDataEachDirective(target, ctx, attrValue, tasks);
       return;
@@ -190,14 +290,42 @@ const rcg = (function () {
       el = walker.nextNode();
     }
     tasks.forEach((task) => {
-      if (task.op === 'data-component') createComponent(task);
+      if (task.op === 'data-if') createConditional(task);
+      else if (task.op === 'data-component') createComponent(task);
       else if (task.op === 'data-each') createRepeater(task);
     });
     return root;
   }
 
+  function createConditional(task) {
+    const { el, ctx, expression, template } = task;
+    const parent = el.parentNode;
+    if (!parent) return;
+
+    const placeholder = document.createComment('if');
+    parent.replaceChild(placeholder, el);
+
+    let mountedNode = null;
+    const renderConditional = () => {
+      const visible = evaluateCondition(expression, ctx); //!!resolve(expression, ctx);
+      if (visible) {
+        if (!mountedNode || !mountedNode.isConnected) {
+          const clone = template.cloneNode(true);
+          mountedNode = hydrate(clone, ctx);
+          placeholder.after(mountedNode);
+        }
+        return;
+      }
+      if (mountedNode?.isConnected) {
+        mountedNode.remove();
+      }
+      mountedNode = null;
+    };
+    effect(renderConditional);
+  }
+
   function createComponent(task) {
-    const {el, children, attrValue: name} = task;
+    const { el, children, attrValue: name } = task;
     const component = components[name];
     if (!component) {
       el.innerHTML = `data-component ${name} no encontrado`;
@@ -209,7 +337,7 @@ const rcg = (function () {
   }
 
   function createRepeater(task) {
-    const {el, children, itemName, ctx, reactive, dataSource} = task;
+    const { el, children, itemName, ctx, reactive, dataSource } = task;
     const render = (items = []) => {
       el.replaceChildren();
       items.forEach((item, index) => {
@@ -241,7 +369,7 @@ const rcg = (function () {
     let value = path.split('.').reduce((o, k) => o?.[k], ctx);
     return isRef(value) ? value.value : value;
   }
-  
+
   function resolveArgs(eventArgs, ctx) {
     const resolved = eventArgs.map((a) => {
       if (a.startsWith('$'))
@@ -285,7 +413,8 @@ const rcg = (function () {
       Object.defineProperty(props, key, {
         enumerable: true,
         get() {
-          return resolve(path, context);
+          const val = resolve(path, context)
+          return val ?? path;
         }
       });
     }
@@ -327,7 +456,7 @@ const rcg = (function () {
 
   function defineComponent(name, setup) {
     return function component(opt) {
-      const {propsData, eventsData, ctx: parentContext, children, el: hostElement} = opt;
+      const { propsData, eventsData, ctx: parentContext, children, el: hostElement } = opt;
       const props = createPropsProxy(propsData, parentContext);
       const emit = createEmit(eventsData, parentContext);
       const definition = setup(parentContext, emit, props) || {};
