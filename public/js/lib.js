@@ -343,6 +343,7 @@ const rcg = (function () {
       items.forEach((item, index) => {
         children.forEach(node => {
           const clone = node.cloneNode(true);
+          el.appendChild(clone);
           const data = {};
           data[itemName] = item;
           hydrate(clone, {
@@ -354,7 +355,6 @@ const rcg = (function () {
             even: index % 2 === 0,
             odd: index % 2 !== 0
           });
-          el.appendChild(clone);
         });
       });
     };
