@@ -23,9 +23,7 @@ const rcg = (function () {
   const actions = {
     text: (el, value) => el.textContent = value,
     html: (el, value) => el.innerHTML = value,
-    class: (el, value) => {
-      el.className = value ?? '';
-    },
+    class: (el, value) => el.className = value ?? '',
     show: (el, value) => el.style.display = value ? '' : 'none', // Visibility toggle
     attr: (el, value, subTarget) => {                            // attr.href, attr.disabled
       if (value === false || value === null) el.removeAttribute(subTarget);
@@ -42,7 +40,8 @@ const rcg = (function () {
     declarations.forEach(declaration => {
       // 1. Split the base expression from the pipes using "|"
       // This protects any ":" that might exist inside pipe arguments
-      const parts = declaration.split('|');
+      // const parts = declaration.split('|');
+      const parts = declaration.split(/(?<!\|)\|(?!\|)/);
       const baseExpr = parts[0].trim();
       const rawPipes = parts.slice(1);
       // 2. Determine target and data path (defaulting to 'text' if no target is specified)
@@ -104,6 +103,13 @@ const rcg = (function () {
     if (val === 'false') return false;
     if (val === 'null') return null;
     if (val === 'undefined') return undefined;
+    // Literales de conjunto/array: (1, 2, '3')
+    if (val.startsWith('(') && val.endsWith(')')) {
+      const inner = val.slice(1, -1).trim();
+      if (!inner) return [];
+      // Parseamos cada elemento de forma recursiva
+      return inner.split(',').map(item => parseOperand(item, ctx));
+    }
     if (val !== '' && !isNaN(val)) return Number(val);
     if ((val.startsWith("'") && val.endsWith("'")) ||
       (val.startsWith('"') && val.endsWith('"'))) {
@@ -112,27 +118,38 @@ const rcg = (function () {
     return resolve(val, ctx);
   };
 
-  const CONDITION_OPERATORS = ['===', '!==', '>=', '<=', '==', '!=', '>', '<'];
-  function evaluateCondition(rawExpr, ctx) {
+  // const CONDITION_OPERATORS = ['===', '!==', '>=', '<=', '==', '!=', '>', '<'];
+  // const operator = CONDITION_OPERATORS.find((op) => target.includes(op));  
+  const OPERATOR_REGEX = /\b(not in|inc|in)\b|===|!==|>=|<=|==|!=|>|</;
+  function evaluateComparison(rawExpr, ctx) {
     const expr = (rawExpr || '').trim();
     if (!expr) return true;
     const negated = expr.startsWith('!');
     const target = (negated ? expr.slice(1) : expr).trim();
     if (!target) return false;
 
-    const operator = CONDITION_OPERATORS.find((op) => target.includes(op));
-    if (!operator) {
+    const match = target.match(OPERATOR_REGEX);
+    if (!match) {
       const result = Boolean(parseOperand(target, ctx));
       return negated ? !result : result;
     }
 
+    const operator = match[0];
     const splitIndex = target.indexOf(operator);
     const leftRaw = target.slice(0, splitIndex);
     const rightRaw = target.slice(splitIndex + operator.length);
     const left = parseOperand(leftRaw, ctx);
     const right = parseOperand(rightRaw, ctx);
+
     let result;
     switch (operator) {
+      case 'in':
+      case 'inc':
+        result = Array.isArray(right) ? right.includes(left) : false;
+        break;
+      case 'not in':
+        result = Array.isArray(right) ? !right.includes(left) : true;
+        break;
       case '===': result = left === right; break;
       case '!==': result = left !== right; break;
       case '==': result = left == right; break;
@@ -144,6 +161,17 @@ const rcg = (function () {
       default: result = false;
     }
     return negated ? !result : result;
+  };
+
+  const evaluateCondition = (rawExpr, ctx) => {
+    const expr = (rawExpr || '').trim();
+    if (!expr) return true;
+    const orParts = expr.split('||').filter(Boolean); // Separamos por OR.
+    return orParts.some(orPart => {       
+      return orPart.split('&&')// Para cada grupo del OR, separamos por AND.
+                   .filter(Boolean)
+                   .every(andPart => evaluateComparison(andPart, ctx));
+    });
   };
 
   function parseClassName(value, ctx) {
@@ -307,7 +335,7 @@ const rcg = (function () {
 
     let mountedNode = null;
     const renderConditional = () => {
-      const visible = evaluateCondition(expression, ctx); //!!resolve(expression, ctx);
+      const visible = evaluateCondition(expression, ctx);
       if (visible) {
         if (!mountedNode || !mountedNode.isConnected) {
           const clone = template.cloneNode(true);
@@ -492,6 +520,9 @@ const rcg = (function () {
     onReady,
     defineComponent,
     registerComponent,
+    buildElement,
+    evaluateCondition,
+    parseOperand
   };
 
 })();

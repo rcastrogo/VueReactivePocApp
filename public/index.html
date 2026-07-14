@@ -54,6 +54,9 @@
       <a class="tool-bar-button border-slate-200" href="/components_02_demo.html">
         Components
       </a>
+      <a class="tool-bar-button border-slate-200" href="/evaluate_parse_tests.html">
+        Tests parse/evaluate
+      </a>
     </div>
 
     <section class="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
@@ -122,8 +125,11 @@
             <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
               <h4 class="mb-3 text-sm font-bold text-slate-800">data-if</h4>
               <div class="space-y-3 text-sm">
-                <div data-if="!mod3" class="rounded-xl border border-rose-300 bg-rose-50 p-3 text-rose-900">
-                  Visible cuando <strong>mod3</strong> es false.
+                <div data-if="par === 'par' && estado.users.length === 4" class="rounded-xl border border-rose-300 bg-rose-50 p-3 text-rose-900">
+                  Visible cuando cuenta es par y hay 4 usuarios.
+                </div>
+                <div data-if="par === 'par' || estado.users.length === 4" class="rounded-xl border border-rose-300 bg-rose-50 p-3 text-rose-900">
+                  Visible cuando cuenta es par o hay 4 usuarios.
                 </div>
 
                 <div data-if="estado.cuenta === 5" class="rounded-xl border border-amber-300 bg-amber-50 p-3 text-amber-900">
@@ -133,9 +139,14 @@
                 <div data-if="estado.cuenta >= estado.limite" class="rounded-xl border border-sky-300 bg-sky-50 p-3 text-sky-900">
                   Cuenta supero el limite dinamico (<span data-bind="estado.limite"></span>).
                 </div>
+                
+                <div data-if="estado.cuenta in (estado.limite, 13, 15)" class="rounded-xl border border-sky-300 bg-sky-50 p-3 text-sky-900">
+                  Se muestra cuando cuenta es 12, 13 o 15
+                </div>
 
                 <div data-if="mod3" class="rounded-xl border border-emerald-300 bg-emerald-50 p-3">
                   <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-emerald-700">Componente anidado con data-if</p>
+                  <p class="mb-2 text-xs text-emerald-700">Cuenta mod 3</p>                  
                   <div data-component="app-progress" [value]="estado.cuenta"></div>
                 </div>
               </div>

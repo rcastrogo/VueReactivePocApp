@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RCG parseOperand + evaluateCondition Tests</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="/css/tailwind.css" rel="stylesheet">
+  <script src="https://unpkg.com/@vue/reactivity@3.5.22/dist/reactivity.global.js"></script>
+  <script src="/js/lib.js"></script>
+</head>
+
+<body class="bg-linear-to-b overflow-auto from-slate-100 via-slate-50 to-emerald-50 p-5 text-slate-900 sm:p-8"
+  style="font-family: 'Space Grotesk', sans-serif;">
+
+  <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+    <div class="absolute -left-16 top-8 h-56 w-56 rounded-full bg-sky-200/45 blur-3xl"></div>
+    <div class="absolute right-0 top-1/3 h-72 w-72 rounded-full bg-emerald-200/35 blur-3xl"></div>
+    <div class="absolute bottom-0 left-1/3 h-52 w-52 rounded-full bg-amber-200/35 blur-3xl"></div>
+  </div>
+
+  <main class="mx-auto max-w-6xl space-y-6">
+    <section
+      class="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-xl shadow-slate-300/30 backdrop-blur-sm sm:p-8">
+      <p class="text-xs font-semibold tracking-[0.2em] text-slate-500">RCG TEST LAB</p>
+      <h1 class="mt-2 text-3xl font-bold text-slate-900 sm:text-5xl">Pruebas visuales de parseOperand y evaluateCondition</h1>
+      <p class="mt-3 max-w-3xl text-sm text-slate-600 sm:text-base">
+        Bateria amplia de pruebas tipo unitarias para revisar entradas, resultados y estado PASS/FAIL.
+      </p>
+      <div class="mt-5 flex flex-wrap gap-2">
+        <a class="tool-bar-button border-slate-200" href="/index.html">Home</a>
+        <button id="run-tests" class="tool-bar-button border-slate-200">Ejecutar de nuevo</button>
+      </div>
+    </section>
+
+    <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <article class="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm">
+        <p class="text-xs font-semibold tracking-wider text-slate-500">parseOperand</p>
+        <p id="parse-total" class="mt-1 text-3xl font-bold text-slate-900">0</p>
+        <p class="text-xs text-slate-500">casos ejecutados</p>
+      </article>
+      <article class="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 shadow-sm">
+        <p class="text-xs font-semibold tracking-wider text-emerald-700">parseOperand PASS</p>
+        <p id="parse-pass" class="mt-1 text-3xl font-bold text-emerald-900">0</p>
+        <p class="text-xs text-emerald-700">coinciden con expected</p>
+      </article>
+      <article class="rounded-2xl border border-sky-200 bg-sky-50/80 p-4 shadow-sm">
+        <p class="text-xs font-semibold tracking-wider text-sky-700">evaluateCondition</p>
+        <p id="cond-total" class="mt-1 text-3xl font-bold text-sky-900">0</p>
+        <p class="text-xs text-sky-700">casos ejecutados</p>
+      </article>
+      <article class="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 shadow-sm">
+        <p class="text-xs font-semibold tracking-wider text-amber-700">evaluateCondition PASS</p>
+        <p id="cond-pass" class="mt-1 text-3xl font-bold text-amber-900">0</p>
+        <p class="text-xs text-amber-700">coinciden con expected</p>
+      </article>
+    </section>
+
+    <section class="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm">
+      <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h2 class="text-lg font-bold text-slate-900">Casos de parseOperand</h2>
+        <p class="text-xs text-slate-500">Entrada literal o path resuelto contra un contexto reactivo</p>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full border-collapse text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">
+              <th class="px-3 py-2">#</th>
+              <th class="px-3 py-2">Entrada</th>
+              <th class="px-3 py-2">Resultado</th>
+              <th class="px-3 py-2">Expected</th>
+              <th class="px-3 py-2">Estado</th>
+            </tr>
+          </thead>
+          <tbody id="parse-results"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm">
+      <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h2 class="text-lg font-bold text-slate-900">Casos de evaluateCondition</h2>
+        <p class="text-xs text-slate-500">Operadores: ===, !==, ==, !=, &gt;, &lt;, &gt;=, &lt;=, in, inc, not in, !, &&, ||</p>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full border-collapse text-sm">
+          <thead>
+            <tr class="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">
+              <th class="px-3 py-2">#</th>
+              <th class="px-3 py-2">Expresion</th>
+              <th class="px-3 py-2">Resultado</th>
+              <th class="px-3 py-2">Expected</th>
+              <th class="px-3 py-2">Estado</th>
+            </tr>
+          </thead>
+          <tbody id="cond-results"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm">
+      <h2 class="text-lg font-bold text-slate-900">Contexto de pruebas</h2>
+      <p class="mt-1 text-sm text-slate-600">Objeto base usado para resolver paths en ambos metodos.</p>
+      <pre id="ctx-view"
+        class="mt-3 overflow-x-auto rounded-xl border border-slate-200 bg-slate-950/95 p-4 text-xs text-slate-100"></pre>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const { reactive, ref } = VueReactivity;
+
+      const ctx = reactive({
+        state: {
+          count: 7,
+          name: 'Ada',
+          enabled: true,
+          flag: false,
+          score: 15,
+          users: ['ana', 'luis', 'marta'],
+          allowed: [5, 7, 11],
+          nested: {
+            deep: {
+              value: 99
+            }
+          }
+        },
+        limit: 10,
+        empty: '',
+        nil: null,
+        refNumber: ref(42)
+      });
+
+      const parseCases = [
+        { input: 'true', expected: true },
+        { input: 'false', expected: false },
+        { input: 'null', expected: null },
+        { input: 'undefined', expected: undefined },
+        { input: '  0  ', expected: 0 },
+        { input: '3.14', expected: 3.14 },
+        { input: '-12', expected: -12 },
+        { input: '0x10', expected: 16 },
+        { input: "'hola'", expected: 'hola' },
+        { input: '"mundo"', expected: 'mundo' },
+        { input: 'state.count', expected: 7 },
+        { input: 'state.name', expected: 'Ada' },
+        { input: 'state.enabled', expected: true },
+        { input: 'state.nested.deep.value', expected: 99 },
+        { input: 'state.missing', expected: undefined },
+        { input: 'refNumber', expected: 42 },
+        { input: '()', expected: [] },
+        { input: '(1, 2, 3)', expected: [1, 2, 3] },
+        { input: "('a', \"b\", true, null, undefined)", expected: ['a', 'b', true, null, undefined] },
+        { input: '(state.count, limit, refNumber)', expected: [7, 10, 42] },
+        // Casos borde para observar limitaciones del split por coma actual
+        { input: "('a,b', 2)", expected: [undefined, undefined, 2] },
+        { input: '(1, (2,3))', expected: [1, undefined, undefined] }
+      ];
+
+      const conditionCases = [
+        { expr: '', expected: true },
+        { expr: 'true', expected: true },
+        { expr: 'false', expected: false },
+        { expr: '!false', expected: true },
+        { expr: 'state.count > 5', expected: true },
+        { expr: 'state.count < 5', expected: false },
+        { expr: 'state.count >= 7', expected: true },
+        { expr: 'state.count <= 6', expected: false },
+        { expr: 'state.count === 7', expected: true },
+        { expr: 'state.count !== 7', expected: false },
+        { expr: 'state.name == "Ada"', expected: true },
+        { expr: 'state.name != "Bob"', expected: true },
+        { expr: 'state.count in (1, 3, 7)', expected: true },
+        { expr: 'state.count inc (1, 3, 8)', expected: false },
+        { expr: 'state.count not in (1, 3, 8)', expected: true },
+        { expr: 'state.count in state.allowed', expected: true },
+        { expr: 'state.score in state.allowed', expected: false },
+        { expr: 'state.name in ("Ada", "Linus")', expected: true },
+        { expr: 'state.name not in ("Grace", "Linus")', expected: true },
+        { expr: 'state.enabled && state.count === 7', expected: true },
+        { expr: 'state.enabled && state.count === 6', expected: false },
+        { expr: 'state.flag || state.count === 7', expected: true },
+        { expr: 'state.flag || state.count === 2', expected: false },
+        { expr: '!state.flag', expected: true },
+        { expr: '!state.unknown', expected: true },
+        { expr: 'state.count > 5 && state.count < 9 || state.flag', expected: true },
+        { expr: 'state.count > 9 || state.flag || state.name === "Ada"', expected: true },
+        { expr: 'state.count > limit', expected: false },
+        { expr: 'state.count <= limit', expected: true },
+        { expr: 'nil', expected: false },
+        { expr: '!nil', expected: true },
+        { expr: 'empty', expected: false },
+        { expr: '!empty', expected: true }
+      ];
+
+      function toPrintable(value) {
+        if (value === undefined) return 'undefined';
+        if (typeof value === 'string') return `"${value}"`;
+        try {
+          return JSON.stringify(value);
+        } catch (_) {
+          return String(value);
+        }
+      }
+
+      function deepEqual(a, b) {
+        return toPrintable(a) === toPrintable(b);
+      }
+
+      function renderRow(index, expression, result, expected, pass) {
+        const stateClass = pass
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+          : 'border-rose-200 bg-rose-50 text-rose-700';
+        const stateText = pass ? 'PASS' : 'FAIL';
+        return `<tr class="border-b border-slate-100 align-top">
+          <td class="px-3 py-2 text-xs text-slate-500">${index}</td>
+          <td class="px-3 py-2"><code class="font-semibold text-slate-800" style="font-family: 'JetBrains Mono', monospace;">${expression}</code></td>
+          <td class="px-3 py-2"><code style="font-family: 'JetBrains Mono', monospace;">${toPrintable(result)}</code></td>
+          <td class="px-3 py-2"><code style="font-family: 'JetBrains Mono', monospace;">${toPrintable(expected)}</code></td>
+          <td class="px-3 py-2"><span class="inline-flex rounded-full border px-2 py-1 text-xs font-bold ${stateClass}">${stateText}</span></td>
+        </tr>`;
+      }
+
+      function runTests() {
+        const parseBody = document.getElementById('parse-results');
+        const condBody = document.getElementById('cond-results');
+
+        let parsePass = 0;
+        let condPass = 0;
+
+        parseBody.innerHTML = parseCases.map((test, i) => {
+          const result = rcg.parseOperand(test.input, ctx);
+          const pass = deepEqual(result, test.expected);
+          if (pass) parsePass += 1;
+          return renderRow(i + 1, test.input, result, test.expected, pass);
+        }).join('');
+
+        condBody.innerHTML = conditionCases.map((test, i) => {
+          const result = rcg.evaluateCondition(test.expr, ctx);
+          const pass = deepEqual(result, test.expected);
+          if (pass) condPass += 1;
+          return renderRow(i + 1, test.expr, result, test.expected, pass);
+        }).join('');
+
+        document.getElementById('parse-total').textContent = String(parseCases.length);
+        document.getElementById('parse-pass').textContent = String(parsePass);
+        document.getElementById('cond-total').textContent = String(conditionCases.length);
+        document.getElementById('cond-pass').textContent = String(condPass);
+
+        const ctxView = {
+          ...ctx,
+          refNumber: ctx.refNumber
+        };
+        document.getElementById('ctx-view').textContent = JSON.stringify(ctxView, null, 2);
+      }
+
+      document.getElementById('run-tests').addEventListener('click', runTests);
+      runTests();
+    }());
+  </script>
+
+</body>
+
+</html>

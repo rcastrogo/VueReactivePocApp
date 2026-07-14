@@ -537,11 +537,6 @@
       return `relative inline-flex h-6 w-11 flex-shrink-0 rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${stateClass} ${disabledClass}`;
     });
 
-    const thumbClass = computed(() => {
-      const positionClass = state.on ? 'translate-x-5' : 'translate-x-0.5';
-      return `mt-0.5 inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200 ${positionClass}`;
-    });
-
     const handlers = {
       flip() {
         if (isDisabled.value) return;
@@ -554,10 +549,19 @@
       <label class="inline-flex cursor-pointer items-center gap-3">
         <button
           role="switch"
-          data-bind="class:trackClass; attr.aria-checked:state.on; attr.disabled:isDisabled"
+          data-bind="
+            class:trackClass;
+            attr.aria-checked:state.on;
+            attr.disabled:isDisabled
+          "
           on-click="flip">
           <span
-            data-bind="class:thumbClass">
+            data-bind="class:
+              mt-0.5 inline-block h-5 w-5 transform rounded-full
+              bg-white shadow transition-transform duration-200
+              translate-x-5 ? state.on
+              translate-x-0.5 ? !state.on;
+            ">
           </span>
         </button>
         <span
@@ -570,7 +574,7 @@
     return {
       template,
       handlers,
-      ctx: { state, trackClass, thumbClass, isDisabled }
+      ctx: { state, trackClass, isDisabled }
     };
   });
 
