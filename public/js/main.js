@@ -204,6 +204,13 @@ function initAll() {
     }
   }
 
+  rcg.registerAction('action_01', (el, ctx, args) => {
+    const extra = ctx.estado.cuenta;
+    const count = ctx.estado.users.length;
+    el.textContent = String(count) + ' usuarios / cuenta: ' + String(extra);
+    // console.log(el.textContent);
+  })
+
   rcg.hydrate(document, { estado, par, mod3, ...handlers });
 
   effect(() => {

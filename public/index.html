@@ -72,6 +72,11 @@
             <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
               Cuenta actual: <strong data-bind="estado.cuenta"></strong>
             </div>
+            <div data-bind="invoke:action_01:a:b:$estado.cuenta"></div>
+            <input disabled 
+              type="text" 
+              class="app-input w-12 p-1 text-center"
+              data-bind="value:estado.cuenta" />
           </header>
 
           <div class="grid gap-4 xl:grid-cols-2">

@@ -25,76 +25,100 @@ const rcg = (function () {
     html: (el, value) => el.innerHTML = value,
     class: (el, value) => el.className = value ?? '',
     show: (el, value) => el.style.display = value ? '' : 'none', // Visibility toggle
-    attr: (el, value, subTarget) => {                            // attr.href, attr.disabled
-      if (value === false || value === null) el.removeAttribute(subTarget);
-      else el.setAttribute(subTarget, value === true ? '' : value);
+    attr: (el, value, prop) => {                                 // attr.href, attr.disabled
+      if (value === false || value === null) el.removeAttribute(prop);
+      else el.setAttribute(prop, value === true ? '' : value);
     },
-    style: (el, value, subTarget) => el.style[subTarget] = value // style.color, style.backgroundColor
+    style: (el, value, prop) => el.style[prop] = value // style.color, style.backgroundColor
   };
+
+  function registerAction(name, action){
+    actions[name] = action;
+  }
+
+  function parseBinding(binding) {
+    // Split base expression and pipes, preserving literal || in expressions.
+    const parts = binding.split(/(?<!\|)\|(?!\|)/);
+    const baseExpr = parts[0].trim();
+    const rawPipes = parts.slice(1);
+    let action = 'text';
+    let path = baseExpr;
+    const firstColonIdx = baseExpr.indexOf(':');
+    if (firstColonIdx !== -1) {
+      action = baseExpr.slice(0, firstColonIdx).trim();
+      path = baseExpr.slice(firstColonIdx + 1).trim();
+    }
+    const [actionName, prop] = action.split('.');
+    return {
+      action: actionName,
+      path,
+      pipes: parsePipes(rawPipes),
+      prop
+    };
+  }
 
   function dataBind(el, context) {
     const rawBind = el.getAttribute('data-bind');
+    if (!rawBind) return;
     el.removeAttribute('data-bind');
-    const declarations = rawBind.split(';').map(d => d.trim()).filter(Boolean);
+    const bindings = rawBind.split(';').map(d => d.trim()).filter(Boolean);
 
-    declarations.forEach(declaration => {
-      // 1. Split the base expression from the pipes using "|"
-      // This protects any ":" that might exist inside pipe arguments
-      // const parts = declaration.split('|');
-      const parts = declaration.split(/(?<!\|)\|(?!\|)/);
-      const baseExpr = parts[0].trim();
-      const rawPipes = parts.slice(1);
-      // 2. Determine target and data path (defaulting to 'text' if no target is specified)
-      let rawTarget = 'text';
-      let dataPathStr = baseExpr;
-      const firstColonIdx = baseExpr.indexOf(':');
-      if (firstColonIdx !== -1) {
-        rawTarget = baseExpr.slice(0, firstColonIdx).trim();
-        dataPathStr = baseExpr.slice(firstColonIdx + 1).trim();
-      }
-      // 3. Parse sub-targets (e.g., "attr.href" -> targetName: "attr", subTarget: "href")
-      const [targetName, subTarget] = rawTarget.split('.');
-      // 4. Parse pipes safely
-      const parsedPipes = rawPipes.map(p => {
-        const pipeStr = p.trim();
-        const pipeColonIdx = pipeStr.indexOf(':');
-        // If there's a colon, separate name and argument. 
-        // We use slice to allow multiple colons in the argument (e.g., time:12:00)
-        if (pipeColonIdx !== -1) {
-          return {
-            name: pipeStr.slice(0, pipeColonIdx).trim(),
-            arg: pipeStr.slice(pipeColonIdx + 1).trim()
-          };
-        }
-        return { name: pipeStr, arg: undefined };
-      });
-      // 5. Create the reactive effect for THIS specific declaration
+    bindings.forEach(binding => {
+      const cfg = parseBinding(binding);
       effect(() => {
-        // A. Navigate the context object to get the raw value
-        let value = resolve(dataPathStr, context);
-        if (targetName === 'class') {
-          if (value === undefined) {
-            value = parseClassName(dataPathStr, context);
-          } else {
-            value = parseClassName(value, context);
-          }
+
+        if (cfg.action === 'invoke') {
+          const [handlerName, ...eventArgs] = cfg.path.split(':');
+          const resolvedArgs = resolveArgs(eventArgs, context);
+          const actionHandler = actions[handlerName];
+          if (actionHandler)
+            actionHandler(el, context, resolvedArgs);
+          else
+            console.error(
+              `Action handler "${handlerName}" not found for invoke directive.`
+            );
+          return;
         }
-        // B. Apply the pipe chain in order
-        value = parsedPipes.reduce((currentVal, pipeDef) => {
+
+        let value = resolve(cfg.path, context);
+        if (cfg.action === 'class')
+          value = value === undefined 
+            ? parseClassName(cfg.path, context) 
+            : parseClassName(value, context);          
+
+        value = cfg.pipes.apply(value);
+  
+        const actionHandler = actions[cfg.action];
+        if (actionHandler)
+          actionHandler(el, value, cfg.prop);
+        else    
+          el[cfg.action] = value;       
+      });
+    });
+  }
+
+  function parsePipes(value){
+    const parsed = value.map(p => {
+      const pipeStr = p.trim();
+      const pipeColonIdx = pipeStr.indexOf(':');
+      // If there's a colon, separate name and argument. 
+      // We use slice to allow multiple colons in the argument (e.g., time:12:00)
+      if (pipeColonIdx !== -1) {
+        return {
+          name: pipeStr.slice(0, pipeColonIdx).trim(),
+          arg: pipeStr.slice(pipeColonIdx + 1).trim()
+        };
+      }
+      return { name: pipeStr, arg: undefined };
+    });
+    return {
+      apply: (value) => {
+        return parsed.reduce((currentVal, pipeDef) => {
           const pipeFunc = pipes[pipeDef.name];
           return pipeFunc ? pipeFunc(currentVal, pipeDef.arg) : currentVal;
         }, value);
-        // C. Execute the action on the DOM element
-        const actionHandler = actions[targetName];
-        if (actionHandler) {
-          actionHandler(el, value, subTarget);
-        } else {
-          // Fallback: If not a predefined action, assign it as a native DOM property
-          // Useful for input fields: "value: state.text"
-          el[rawTarget] = value;
-        }
-      });
-    });
+      }
+    } 
   }
 
   function parseOperand(valRaw, ctx) {
@@ -522,7 +546,8 @@ const rcg = (function () {
     registerComponent,
     buildElement,
     evaluateCondition,
-    parseOperand
+    parseOperand,
+    registerAction
   };
 
 })();
