@@ -233,7 +233,7 @@ function initAll() {
   });
 
   effect(() => {
-    elContador.textContent = `${estado.cuenta} (${par.value})`;
+    elContador.innerHTML = `${estado.cuenta} <br/> ${par.value}`;
     if(estado.cuenta === 15) refrescarUsuarios();
   });
 
