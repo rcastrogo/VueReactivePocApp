@@ -62,6 +62,13 @@
     <section class="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
      
       <div class="space-y-6">
+        <div
+          class="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur-sm"
+          data-component="app-bus-view" 
+          [channel]="app-input/on-input"
+          [loading]="estado.loading"
+          >
+        </div>        
         <section class="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur-sm">
           <header class="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
@@ -72,7 +79,7 @@
             <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
               Cuenta actual: <strong data-bind="estado.cuenta"></strong>
             </div>
-            <div data-bind="invoke:action_01:a:b:$estado.cuenta"></div>
+            <div data-bind="invoke:action_01:a:b:$estado.cuenta"></div> 
             <input disabled 
               type="text" 
               class="app-input w-12 p-1 text-center"

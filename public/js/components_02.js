@@ -424,6 +424,7 @@
         state.value   = e.ev.target.value;
         state.touched = true;
         emit('change', state.value);
+        rcg.bus.emit('app-input/on-input', state.value);
       }
     };
 

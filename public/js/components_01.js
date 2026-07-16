@@ -268,4 +268,70 @@
 
 	rcg.registerComponent(STAT, Stat);
 
+
+	// ════════════════════════════════════════════════════════════════════════════
+	// app-bus-view
+	// Props : channel
+	//
+	// Muestra el último payload emitido por un canal del ReactiveBus.
+	// Ejemplo:
+	//   <app-bus-view channel="app-input/on-input"></app-bus-view>
+	// ════════════════════════════════════════════════════════════════════════════
+
+	const BUS_VIEW = 'app-bus-view';
+
+	const BusView = rcg.defineComponent(BUS_VIEW, (ctx, emit, props) => {
+
+		const $message = rcg.bus.on('app-message');
+		const message = computed(() => "Mensaje: " + ($message.value.payload ?? "--"));
+
+		rcg.registerPipe('local-pipe', (val, args) => {
+			console.log(val, args);
+			return val;
+		});
+
+		const template = `
+			<div>
+				<div class="text-xs text-slate-500 mb-1 text-center">
+					Canal:
+					<span class="font-mono" data-bind="props.channel"></span>
+				</div>
+				<div 
+					class="text-2xl font-bold text-sky-600 text-center"
+					data-bind="text:?props.channel | toFixed:2">
+				</div>
+				<div class="text-xs text-slate-500 mb-1 text-center">
+					Canal:
+					<span class="font-mono">app-input/on-message</span>
+				</div>
+				<div 
+					class="text-center"
+					data-bind="$message.value.payload">
+				</div>
+				<div 
+					class="text-center"
+					data-bind="message | upper">
+				</div>
+				<div class="text-xs text-slate-500 mb-1 text-center">
+					data-bind="props.loading | if:Cargando usuarios:Cargados | local-pipe"
+				</div>				
+				<div 
+					class="text-center"
+					data-bind="props.loading | if:Cargando usuarios:Cargados | local-pipe">
+				</div>
+			</div>
+		`;
+
+		return {
+			template,
+			ctx: {
+				$message,
+				message
+			}
+		};
+
+	});
+
+	rcg.registerComponent(BUS_VIEW, BusView);
+
 })();

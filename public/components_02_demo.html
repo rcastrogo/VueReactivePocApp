@@ -132,7 +132,7 @@
 
 	<script>
 		(function () {
-			const { reactive, computed } = VueReactivity;
+			const { reactive, effect, computed } = VueReactivity;
 
 			const tabLabels = ['Resumen', 'Actividad', 'Configuracion'];
 			const ui = reactive({
@@ -208,6 +208,12 @@
 					...handlers
 				});
 			});
+
+			effect(() => {
+				const { version, payload } = rcg.bus.on("app-input/on-input").value;
+				if (version) ui.lastSelection = payload;
+			});
+
 		}());
 	</script>
 

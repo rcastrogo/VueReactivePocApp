@@ -3,20 +3,27 @@
 
 const rcg = (function () {
 
-  const { reactive, effect, computed, isRef } = VueReactivity;
+  const { reactive, effect, computed, isRef, shallowRef } = VueReactivity;
 
   const pipes = {
     upper: (val) => typeof val === 'string' ? val.toUpperCase() : val,
     lower: (val) => typeof val === 'string' ? val.toLowerCase() : val,
     fallback: (val, defaultVal) => (val === undefined || val === null || val === '') ? defaultVal : val,
     prefix: (val, pref) => `${pref}${val}`,
-    debug: (val) => {
-      console.log(val);
+    debug: (val, arg) => {
+      console.log(val, arg);
       return val;
     },
     formatMiliseconds: (val) => {
       const seconds = Number(val) / 1000;
       return `${seconds.toFixed(1)} segundos`
+    },
+    toFixed: (val, fractionDigits = 0) => {
+      return Number(val || 0).toFixed(fractionDigits);
+    },
+    if: (val, arg) => {
+      const [truthy, falsy = ""] = arg.split(":");
+      return val ? truthy : falsy;
     }
   };
 
@@ -31,10 +38,6 @@ const rcg = (function () {
     },
     style: (el, value, prop) => el.style[prop] = value // style.color, style.backgroundColor
   };
-
-  function registerAction(name, action){
-    actions[name] = action;
-  }
 
   function parseBinding(binding) {
     // Split base expression and pipes, preserving literal || in expressions.
@@ -82,22 +85,22 @@ const rcg = (function () {
 
         let value = resolve(cfg.path, context);
         if (cfg.action === 'class')
-          value = value === undefined 
-            ? parseClassName(cfg.path, context) 
-            : parseClassName(value, context);          
+          value = value === undefined
+            ? parseClassName(cfg.path, context)
+            : parseClassName(value, context);
 
         value = cfg.pipes.apply(value);
-  
+
         const actionHandler = actions[cfg.action];
         if (actionHandler)
           actionHandler(el, value, cfg.prop);
-        else    
-          el[cfg.action] = value;       
+        else
+          el[cfg.action] = value;
       });
     });
   }
 
-  function parsePipes(value){
+  function parsePipes(value) {
     const parsed = value.map(p => {
       const pipeStr = p.trim();
       const pipeColonIdx = pipeStr.indexOf(':');
@@ -118,7 +121,7 @@ const rcg = (function () {
           return pipeFunc ? pipeFunc(currentVal, pipeDef.arg) : currentVal;
         }, value);
       }
-    } 
+    }
   }
 
   function parseOperand(valRaw, ctx) {
@@ -191,10 +194,10 @@ const rcg = (function () {
     const expr = (rawExpr || '').trim();
     if (!expr) return true;
     const orParts = expr.split('||').filter(Boolean); // Separamos por OR.
-    return orParts.some(orPart => {       
+    return orParts.some(orPart => {
       return orPart.split('&&')// Para cada grupo del OR, separamos por AND.
-                   .filter(Boolean)
-                   .every(andPart => evaluateComparison(andPart, ctx));
+        .filter(Boolean)
+        .every(andPart => evaluateComparison(andPart, ctx));
     });
   };
 
@@ -418,6 +421,10 @@ const rcg = (function () {
   }
 
   function resolve(path, ctx) {
+    if (path.startsWith('?')) {
+      const channel = resolve(path.slice(1), ctx);
+      return rcg.bus.on(channel).value.payload;
+    }
     let value = path.split('.').reduce((o, k) => o?.[k], ctx);
     return isRef(value) ? value.value : value;
   }
@@ -539,6 +546,46 @@ const rcg = (function () {
     components[name] = component;
   }
 
+  class ReactiveBus {
+
+    #channels = new Map();
+
+    channel(name) {
+      let channel = this.#channels.get(name);
+      if (!channel) {
+        channel = shallowRef({
+          version: 0,
+          payload: undefined
+        });
+        this.#channels.set(name, channel);
+      }
+      return channel;
+    }
+
+    emit(name, payload) {
+      const channel = this.channel(name);
+      channel.value = {
+        version: channel.value.version + 1,
+        payload
+      };
+    }
+
+    clear(name) {
+      if (!this.#channels.has(name)) return;
+      const channel = this.#channels.get(name);
+      channel.value = {
+        version: channel.value.version + 1,
+        payload: undefined
+      };
+    }
+
+    delete(name) { this.#channels.delete(name); }
+    has(name) { return this.#channels.has(name); }
+    names() { return [...this.#channels.keys()]; }
+    on(name) { return this.channel(name); }
+
+  }
+
   return {
     hydrate,
     onReady,
@@ -547,7 +594,9 @@ const rcg = (function () {
     buildElement,
     evaluateCondition,
     parseOperand,
-    registerAction
+    registerAction: (name, action) => actions[name] = action,
+    registerPipe: (name, pipe) => pipes[name] = pipe,
+    bus: new ReactiveBus()
   };
 
 })();
