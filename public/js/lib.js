@@ -5,11 +5,14 @@ const rcg = (function () {
 
   const { reactive, effect, computed, isRef, shallowRef } = VueReactivity;
 
+  const isString = (val) => typeof val === 'string' || val instanceof String;
+
   const pipes = {
-    upper: (val) => typeof val === 'string' ? val.toUpperCase() : val,
-    lower: (val) => typeof val === 'string' ? val.toLowerCase() : val,
-    fallback: (val, defaultVal) => (val === undefined || val === null || val === '') ? defaultVal : val,
-    prefix: (val, pref) => `${pref}${val}`,
+    upper: (val) => isString(val) ? val.toUpperCase() : val,
+    lower: (val) => isString(val) ? val.toLowerCase() : val,
+    fallback: (val, arg) => (val === undefined || val === null || val === '') ? arg : val,
+    prefix: (val, arg = '') => `${arg}${val}`,
+    sufix: (val, arg = '') => `${val}${arg}`,
     debug: (val, arg) => {
       console.log(val, arg);
       return val;
@@ -18,13 +21,51 @@ const rcg = (function () {
       const seconds = Number(val) / 1000;
       return `${seconds.toFixed(1)} segundos`
     },
-    toFixed: (val, fractionDigits = 0) => {
-      return Number(val || 0).toFixed(fractionDigits);
+    toNumber: (val) => {
+      const num = Number(val);
+      return isNaN(num) ? 0 : num;
+    },
+    toFixed: (val, arg = 0)=> Number(val || 0).toFixed(arg),     
+    toString: (val) => val?.toString() ?? '',
+    toJSON: (val, arg = 2) => JSON.stringify(val, null, ~~arg),
+    parseJSON: (val) => {
+      try {
+        return JSON.parse(val);
+      } catch (e) {
+        console.error("Error parseando JSON:", e);
+        return null;
+      }
+    },
+    value: (val, arg) => val?.[arg],
+    equal: (val, arg) => String(val) === String(arg),
+    not: (val) => val ? false : true,    
+    join: (val, arg) => Array.isArray(val) ? val.join(arg) : '',
+    includes: (val, arg) => {
+      if (isString(val)) return val.includes(arg);
+      if (Array.isArray(val)) return val.includes(arg);
+      return false;
+    },
+    length: (val) => {
+      if (isString(val) || Array.isArray(val)) return val.length;
+      if (val && typeof val === 'object') return Object.keys(val).length;
+      return 0;
     },
     if: (val, arg) => {
       const [truthy, falsy = ""] = arg.split(":");
-      return val ? truthy : falsy;
-    }
+      return (!val || val === 'false' || val === '0') ? falsy : truthy;
+    },
+    map: (val, arg) => {
+      if (!arg) return val ?? '';   
+      const mapping = Object.fromEntries(
+        arg.split(',').map(pair => {
+          const [key, value] = pair.split('=');
+          return [key?.trim(), value?.trim()];
+        })
+      );
+      return mapping[val] ?? val ?? '';
+    },
+    safeHTML: (text) => safeInnerHTML(text),
+    safeAttribute: (text) => safeAttribute(text)
   };
 
   const actions = {
@@ -520,7 +561,7 @@ const rcg = (function () {
       const emit = createEmit(eventsData, parentContext);
       const definition = setup(parentContext, emit, props) || {};
       const template = definition.template || '<div></div>';
-      const element = typeof template === 'string' ? buildElement(template) : template;
+      const element = isString(template) ? buildElement(template) : template;
 
       inheritHostAttributes(hostElement, element);
 
@@ -586,6 +627,21 @@ const rcg = (function () {
 
   }
 
+  function safeInnerHTML(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  function safeAttribute(text) {
+    return String(text)
+      .replaceAll('&', '&amp;')
+      .replaceAll('"', '&quot;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll("'", '&#39;');
+  }
+
   return {
     hydrate,
     onReady,
@@ -594,6 +650,7 @@ const rcg = (function () {
     buildElement,
     evaluateCondition,
     parseOperand,
+    parsePipes,
     registerAction: (name, action) => actions[name] = action,
     registerPipe: (name, pipe) => pipes[name] = pipe,
     bus: new ReactiveBus()
