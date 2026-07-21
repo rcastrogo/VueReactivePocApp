@@ -6,6 +6,7 @@ const rcg = (function () {
   const { reactive, effect, computed, isRef, shallowRef } = VueReactivity;
 
   const isString = (val) => typeof val === 'string' || val instanceof String;
+  const isFunction = (val) => val && typeof val === 'function';
 
   const pipes = {
     upper: (val) => isString(val) ? val.toUpperCase() : val,
@@ -562,6 +563,8 @@ const rcg = (function () {
       const definition = setup(parentContext, emit, props) || {};
       const template = definition.template || '<div></div>';
       const element = isString(template) ? buildElement(template) : template;
+
+      if(isFunction(definition.elementCreated)) definition.elementCreated?.(element);
 
       inheritHostAttributes(hostElement, element);
 

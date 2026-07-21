@@ -12,6 +12,8 @@
 	<script src="/js/reactivity.global.js"></script>
 	<script src="/js/lib.js"></script>
 	<script src="/js/components_02.js"></script>
+	<script src="/js/async-loader-component.js"></script>
+
 </head>
 
 <body class="bg-linear-to-b overflow-auto from-slate-100 via-slate-50 to-sky-50 p-5 text-slate-900 sm:p-8"
@@ -40,6 +42,16 @@
 				<button class="tool-bar-button border-slate-200" on-click="spawnToast:warning:Revisa los cambios">Toast
 					warning</button>
 				<button class="tool-bar-button border-slate-200" on-click="openModal">Abrir modal</button>
+			</div>
+		</section>
+		
+		<section class="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-xl shadow-slate-300/30 backdrop-blur-sm sm:p-8">
+			<div 
+				class="max-h-60 overflow-auto"
+				data-component="app-async" 
+				[url]="ui.url" 
+				[loading]="Cargando algo..." 
+				[delay]="2000">
 			</div>
 		</section>
 
@@ -143,7 +155,8 @@
 				lastTabIndex: 1,
 				lastTabLabel: 'Actividad',
 				lastSelection: '',
-				toasts: []
+				toasts: [],
+				url: '/templates/usuarios.html'
 			});
 
 			let toastId = 1;
@@ -183,6 +196,10 @@
 				},
 				onOptionSelect(e) {
 					ui.lastSelection = e.detail;
+					if(ui.url == '/templates/usuarios.html')
+						ui.url = `/templates/${ui.lastSelection}.html`;
+					else
+						ui.url = '/templates/usuarios.html';
 				},
 				onToggleChange(e) {
 					ui.notifications = Boolean(e.detail);

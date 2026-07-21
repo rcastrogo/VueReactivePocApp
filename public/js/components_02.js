@@ -307,7 +307,7 @@
     const template = `
       <span data-bind="class:badgeClass">
         <span
-          class="h-1.5 w-1.5 rounded-full flex-shrink-0"
+          class="h-1.5 w-1.5 rounded-full shrink-0"
           data-bind="class:dotClass; show:showDot">
         </span>
         <span data-bind="props.label | fallback:Badge"></span>
@@ -527,7 +527,7 @@
   const Toggle = rcg.defineComponent(TOGGLE, (ctx, emit, props) => {
 
     const state = reactive({
-      on: String(props.checked) === 'true'
+      on: ['true', '1'].includes(String(props.checked))
     });
 
     const isDisabled = computed(() => String(props.disabled) === 'true');

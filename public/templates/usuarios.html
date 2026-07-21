@@ -1,0 +1,97 @@
+<div class="mx-auto w-full max-w-5xl">
+  <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white/95 shadow-lg backdrop-blur-sm">
+    <div class="border-b border-slate-200 bg-slate-50 px-6 py-5 sm:px-8">
+      <p class="text-xs font-semibold tracking-[0.2em] text-slate-500">DIRECTORIO DINAMICO</p>
+      <div class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 class="text-2xl font-bold text-slate-900">Lista de usuarios</h2>
+          <p class="mt-1 text-sm text-slate-600">
+            Fragmento cargado por backend para probar componentes anidados.
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <div data-component="app-badge" [label]="Activo" [type]="success" [dot]="true"></div>
+          <div data-component="app-badge" [label]="Invitado" [type]="neutral" [dot]="false"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid gap-4 px-6 py-6 sm:px-8 lg:grid-cols-2">
+      <article class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-xs font-semibold tracking-[0.18em] text-slate-500">USUARIO #01</p>
+            <h3 class="mt-1 text-lg font-bold text-slate-900">Ana Torres</h3>
+            <p class="mt-1 text-sm text-slate-600">ana.torres@demo.local</p>
+          </div>
+          <div data-component="app-badge" [label]="Activo" [type]="success" [dot]="true"></div>
+        </div>
+
+        <div class="mt-5 flex items-center justify-between gap-4 border-t border-slate-200 pt-4">
+          <div>
+            <p class="text-xs font-semibold tracking-wide text-slate-500">Notificaciones</p>
+            <p class="text-sm text-slate-600">Recibir avisos de acceso y cambios</p>
+          </div>
+          <div data-component="app-toggle" [label]="Activar notificaciones" [checked]="1"></div>
+        </div>
+      </article>
+
+      <article class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-xs font-semibold tracking-[0.18em] text-slate-500">USUARIO #02</p>
+            <h3 class="mt-1 text-lg font-bold text-slate-900">Bruno Díaz</h3>
+            <p class="mt-1 text-sm text-slate-600">bruno.diaz@demo.local</p>
+          </div>
+          <div data-component="app-badge" [label]="Pendiente" [type]="warning" [dot]="true"></div>
+        </div>
+
+        <div class="mt-5 flex items-center justify-between gap-4 border-t border-slate-200 pt-4">
+          <div>
+            <p class="text-xs font-semibold tracking-wide text-slate-500">Notificaciones</p>
+            <p class="text-sm text-slate-600">Pendiente de confirmación</p>
+          </div>
+          <div data-component="app-toggle" [label]="Activar notificaciones" [checked]="0"></div>
+        </div>
+      </article>
+
+      <article class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-xs font-semibold tracking-[0.18em] text-slate-500">USUARIO #03</p>
+            <h3 class="mt-1 text-lg font-bold text-slate-900">Carla Méndez</h3>
+            <p class="mt-1 text-sm text-slate-600">carla.mendez@demo.local</p>
+          </div>
+          <div data-component="app-badge" [label]="Bloqueado" [type]="danger" [dot]="false"></div>
+        </div>
+
+        <div class="mt-5 flex items-center justify-between gap-4 border-t border-slate-200 pt-4">
+          <div>
+            <p class="text-xs font-semibold tracking-wide text-slate-500">Notificaciones</p>
+            <p class="text-sm text-slate-600">Bloqueadas por el administrador</p>
+          </div>
+          <div data-component="app-toggle" [label]="Activar notificaciones" [checked]="0"></div>
+        </div>
+      </article>
+
+      <article class="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-xs font-semibold tracking-[0.18em] text-slate-500">USUARIO #04</p>
+            <h3 class="mt-1 text-lg font-bold text-slate-900">Diego Ruiz</h3>
+            <p class="mt-1 text-sm text-slate-600">diego.ruiz@demo.local</p>
+          </div>
+          <div data-component="app-badge" [label]="Activo" [type]="info" [dot]="true"></div>
+        </div>
+
+        <div class="mt-5 flex items-center justify-between gap-4 border-t border-slate-200 pt-4">
+          <div>
+            <p class="text-xs font-semibold tracking-wide text-slate-500">Notificaciones</p>
+            <p class="text-sm text-slate-600">Canal de soporte y actividad</p>
+          </div>
+          <div data-component="app-toggle" [label]="Activar notificaciones" [checked]="1"></div>
+        </div>
+      </article>
+    </div>
+  </section>
+</div>
