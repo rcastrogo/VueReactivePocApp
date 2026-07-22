@@ -664,6 +664,31 @@ const rcg = (function () {
       .replaceAll("'", '&#39;');
   }
 
+  const http = {
+
+    async getHtml(url, options = {}) {
+      if (!url) return 'Se requiere una URL.';
+      const {
+        signal,
+        headers = {},
+        credentials = 'same-origin'
+      } = options;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'text/html',
+          ...headers
+        },
+        credentials,
+        signal
+      });
+      if (!response.ok) throw new Error(`Error HTTP ${response.status}: ${response.statusText} ${url}`);
+      return response.text();
+    }
+
+  };
+
   return {
     hydrate,
     onReady,
@@ -675,7 +700,8 @@ const rcg = (function () {
     parsePipes,
     registerAction: (name, action) => actions[name] = action,
     registerPipe: (name, pipe) => pipes[name] = pipe,
-    bus: new ReactiveBus()
+    bus: new ReactiveBus(),
+    http
   };
 
 })();

@@ -464,20 +464,8 @@
   .h-full {
     height: 100%;
   }
-  .max-h-1\/4 {
-    max-height: calc(1 / 4 * 100%);
-  }
-  .max-h-2\/4 {
-    max-height: calc(2 / 4 * 100%);
-  }
-  .max-h-20 {
-    max-height: calc(var(--spacing) * 20);
-  }
   .max-h-60 {
     max-height: calc(var(--spacing) * 60);
-  }
-  .max-h-\[250px\] {
-    max-height: 250px;
   }
   .min-h-\[2\.5rem\] {
     min-height: 2.5rem;
@@ -1177,9 +1165,6 @@
   }
   .py-6 {
     padding-block: calc(var(--spacing) * 6);
-  }
-  .py-8 {
-    padding-block: calc(var(--spacing) * 8);
   }
   .py-12 {
     padding-block: calc(var(--spacing) * 12);

@@ -52,25 +52,11 @@
       state.error = null;
 
       try {
-        const response = await fetch(requestUrl, {
-          method: 'GET',
-          headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Accept': 'text/html'
-          },
-          credentials: 'same-origin',
-          signal: localController.signal
-        });
-
-        if (response.ok){
-          const html = await response.text();
-          if (currentUrl !== requestUrl) return;
-          state.status = 'success';
-          state.html = html;
-          queueMicrotask(hydrateLoadedContent);
-          return;
-        }
-        throw new Error(`Error HTTP ${response.status}: ${response.statusText} ${requestUrl}`);
+        const html = await rcg.http.getHtml(requestUrl, { signal: localController.signal });
+        if (currentUrl !== requestUrl) return;
+        state.status = 'success';
+        state.html = html;
+        queueMicrotask(hydrateLoadedContent);
       } catch (error) {
         if (error?.name === 'AbortError') return;
         setError(error);
