@@ -282,10 +282,10 @@ const rcg = (function () {
   }
 
   function parseDataComponentDirective(el, ctx, attrValue, tasks) {
-    el.removeAttribute('data-component');
 
     const propsData = {};
     const eventsData = {};
+    const hostDirectives = [];
     const children = [...el.children];
     // ====================================================
     // Extraer atributos [input] y (output)
@@ -304,6 +304,14 @@ const rcg = (function () {
           const eventName = toCamelCase(match[1]);
           eventsData[eventName] = attr.value;
           el.removeAttribute(attr.name);
+          return;
+        }
+        if (attr.name.startsWith('on-')) {
+          hostDirectives.push({
+            name: attr.name,
+            value: attr.value
+          });
+          el.removeAttribute(attr.name);
         }
       });
     const task = {
@@ -313,13 +321,13 @@ const rcg = (function () {
       attrValue,
       children,
       propsData,
-      eventsData
+      eventsData,
+      hostDirectives
     }
     tasks.push(task);
   }
 
   function parseOnDirective(target, ctx, attrName, attrValue) {
-    target.removeAttribute(attrName);
     const eventName = attrName.replace('on-', '');
     const [handlerName, ...eventArgs] = attrValue.split(':');
     const handler = ctx[handlerName] ||
@@ -347,14 +355,20 @@ const rcg = (function () {
     });
   }
 
+  function isComponent(target) {
+    return target.hasAttribute('data-component');
+  }
+
   function dispatchDirective(target, ctx, attr, tasks) {
     const attrName = attr.name;
     const attrValue = attr.value;
     if (attrName === 'data-if') {
+      if (isComponent(target)) return;
       parseIfDirective(target, ctx, attrValue, tasks);
       return;
     }
     if (attrName === 'data-each') {
+      if (isComponent(target)) return;
       parseDataEachDirective(target, ctx, attrValue, tasks);
       return;
     }
@@ -362,16 +376,18 @@ const rcg = (function () {
       parseDataComponentDirective(target, ctx, attrValue, tasks);
       return;
     }
-    if (attrName === 'on-publish') {
-      target.removeAttribute(attrName);
-      return;
-    }
     if (attrName === 'data-bind') {
       dataBind(target, ctx);
       return;
     }
+    if (attrName === 'on-publish') {
+      target.removeAttribute(attrName);
+      return;
+    }    
     if (attrName.startsWith('on-')) {
-      parseOnDirective(target, ctx, attrName, attrValue);
+      if (isComponent(target)) return;
+      target.removeAttribute(attrName);
+      parseOnDirective(target, ctx, attrName, attrValue);      
     }
   }
 
@@ -422,15 +438,18 @@ const rcg = (function () {
   }
 
   function createComponent(task) {
-    const { el, children, attrValue: name } = task;
+    const { el, children, attrValue: name, hostDirectives, ctx } = task;
+    el.removeAttribute('data-component');
     const component = components[name];
     if (!component) {
       el.innerHTML = `data-component ${name} no encontrado`;
       return;
     }
-    el.replaceWith(
-      component(task)
-    );
+    const componentElement = component(task);
+    hostDirectives?.forEach((directive) => {
+      parseOnDirective(componentElement, ctx, directive.name, directive.value);
+    });
+    el.replaceWith(componentElement);
   }
 
   function createRepeater(task) {
@@ -542,13 +561,13 @@ const rcg = (function () {
 
   function buildHydrationContext(baseContext, definition, props, emit, host, element, children) {
     return {
-      scope: baseContext,
       ...definition.ctx,
       props,
       emit,
       // Solo se añadirán si existen, manteniendo el objeto limpio
       ...(definition.state !== undefined && { state: definition.state }),
       ...(definition.handlers !== undefined && { handlers: definition.handlers }),
+      scope: baseContext,      
       element,
       host,
       children

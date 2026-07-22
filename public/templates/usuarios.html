@@ -10,8 +10,8 @@
           </p>
         </div>
         <div class="flex flex-wrap gap-2">
-          <div data-component="app-badge" [label]="Activo" [type]="success" [dot]="true"></div>
-          <div data-component="app-badge" [label]="Invitado" [type]="neutral" [dot]="false"></div>
+          <div on-click="openModal" data-component="app-badge" [label]="Activo" [type]="success" [dot]="true"></div>
+          <div on-click="retry" data-component="app-badge" [label]="Invitado" [type]="neutral" [dot]="false"></div>
         </div>
       </div>
     </div>

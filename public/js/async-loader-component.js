@@ -11,6 +11,7 @@
 
     let element;
     let controller = null;
+    let timerId = null;
     let currentUrl = '';
 
     const state = reactive({
@@ -28,7 +29,7 @@
     const hydrateLoadedContent = () => {
       const content = element?.querySelector('[data-async-content]');
       if (!content) return;
-      rcg.hydrate(content, ctx);
+      rcg.hydrate(content, {...ctx, ...handlers});
     };
 
     const setError = (error) => {
@@ -61,23 +62,40 @@
           signal: localController.signal
         });
 
-        if (!response.ok)
-          throw new Error(`Error HTTP ${response.status}: ${response.statusText} ${requestUrl}`);
-        const html = await response.text();
-        if (currentUrl !== requestUrl) return;
-        state.status = 'success';
-        state.html = html;
-        queueMicrotask(hydrateLoadedContent);
-
+        if (response.ok){
+          const html = await response.text();
+          if (currentUrl !== requestUrl) return;
+          state.status = 'success';
+          state.html = html;
+          queueMicrotask(hydrateLoadedContent);
+          return;
+        }
+        throw new Error(`Error HTTP ${response.status}: ${response.statusText} ${requestUrl}`);
       } catch (error) {
         if (error?.name === 'AbortError') return;
         setError(error);
       }
     };
 
+    const invokeLoad = (currentUrl) => {
+      if (timerId !== null) {
+        clearTimeout(timerId);
+        timerId = null;
+      }
+      if (controller) controller.abort();
+
+      state.status = 'loading';
+      state.error = null;
+      state.html = '';
+      timerId = setTimeout(() => {
+        timerId = null;
+        load(currentUrl);
+      }, props.delay ?? 0);
+    };
+
     const handlers = {
       retry() {
-        load(currentUrl);
+        invokeLoad(currentUrl);
       }
     };
 
@@ -108,7 +126,7 @@
       const nextUrl = String(props.url ?? '').trim();
       if (nextUrl === currentUrl) return;
       currentUrl = nextUrl;
-      load(currentUrl);
+      invokeLoad(currentUrl);
     });
 
     return {
@@ -122,14 +140,10 @@
         hasError,
         loadingText,
         errorText
-      },
-      load: () => load(currentUrl),
-      reload: () => load(currentUrl)
+      }
     };
 
-  }
-
-);
+  });
 
   rcg.registerComponent(ASYNC, Async);
 
