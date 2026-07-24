@@ -4,6 +4,11 @@
   const FIELD_SELECTOR = '[data-field]';
   const FIELD_ATTRIB = 'data-field';
 
+  function parsePath(path) {
+    if (typeof path !== 'string') return [];
+    return path.split('.').map(part => part.trim()).filter(Boolean);
+  }
+
   function getFields(target) {
     if (typeof target === 'string') target = document.querySelector(target);
     if (target){
@@ -37,6 +42,47 @@
     return f.value;
   }
 
+  function setDeepProperty(obj, path, value) {
+    const keys = parsePath(path);
+    if (!keys.length) return;
+
+    let current = obj;
+    for (let i = 0; i < keys.length - 1; i++) {
+      const key = keys[i];
+      if (!(key in current) || typeof current[key] !== 'object' || current[key] === null) {
+        current[key] = {};
+      }
+      current = current[key];
+    }
+    const lastKey = keys[keys.length - 1];
+    if (!(lastKey in current)) {
+      current[lastKey] = value;
+    } else if (!Array.isArray(current[lastKey])) {
+      current[lastKey] = [current[lastKey], value];
+    } else {
+      current[lastKey].push(value);
+    }
+  }
+
+  function getDeepProperty(obj, path) {
+    return parsePath(path)
+               .reduce((acc, key) => (acc && acc[key] !== undefined ? acc[key] : undefined), obj);
+  }
+
+  function hasDeepProperty(obj, path) {
+    const keys = parsePath(path);
+    if (!keys.length) return false;
+
+    let current = obj;
+    for (const key of keys) {
+      if (current === null || typeof current !== 'object' || !(key in current)) {
+        return false;
+      }
+      current = current[key];
+    }
+    return true;
+  }
+
   function serialize(target) {
     const fields = getFields(target);
     const result = fields.reduce((acc, f) => {
@@ -44,19 +90,23 @@
       if (!key) return acc;
       const value = getFieldValue(f);
       if (value === SKIP_VALUE) return acc;
-      if (!(key in acc)) {
-        acc[key] = value;
-      } else if (!Array.isArray(acc[key])) {
-        acc[key] = [acc[key], value];
-      } else {
-        acc[key].push(value);
-      }
+
+      // if (!(key in acc)) {
+      //   acc[key] = value;
+      // } else if (!Array.isArray(acc[key])) {
+      //   acc[key] = [acc[key], value];
+      // } else {
+      //   acc[key].push(value);
+      // }
+      setDeepProperty(acc, key, value);
       return acc;
     }, Object.create(null));
 
     fields.forEach(f => {
       const key = f.getAttribute(FIELD_ATTRIB);
-      if (key && !(key in result)) result[key] = '';
+      if (!key) return;
+      if (!hasDeepProperty(result, key))
+        setDeepProperty(result, key, '');
     });
 
     return result;
@@ -65,8 +115,8 @@
   function apply(model = {}, target) {
     getFields(target).forEach(f => {
       const key = f.getAttribute(FIELD_ATTRIB);
-      if (key && (key in model)){
-        const value = model[key];
+      if (key && hasDeepProperty(model, key)){
+        const value = getDeepProperty(model, key);
         if (isCheckbox(f)) {
           if (hasExplicitCheckboxValue(f)) {
             if (Array.isArray(value)) {
@@ -115,7 +165,10 @@
     }
 
     if (typeof value === 'object') {
-      params.append(key, JSON.stringify(value));
+      Object.entries(value).forEach(([nestedKey, nestedValue]) => {
+        const composedKey = key ? `${key}.${nestedKey}` : nestedKey;
+        appendQueryParam(params, composedKey, nestedValue);
+      });
       return;
     }
 
@@ -152,8 +205,8 @@
       if (f && targetElement.contains(f)) {
         const key = f.getAttribute(FIELD_ATTRIB);
         if (key) {
-          if (isRadio(f) && !f.checked) return;
           const value = getFieldValue(f);
+          if (value === SKIP_VALUE) return;
           if (lastValues.get(key) !== value) {
             lastValues.set(key, value);
             callback({ key, value });

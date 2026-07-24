@@ -29,7 +29,7 @@
           <p class="text-xs font-semibold tracking-[0.22em] text-slate-500">FORM SERIALIZER LAB</p>
           <h1 class="text-3xl font-bold leading-tight text-slate-900 sm:text-5xl">Prueba visual de serializacion de formularios</h1>
           <p class="text-sm text-slate-600 sm:text-base">Escenario manual para inspeccionar como se serializan distintos tipos de campos usando <strong>data-field</strong>.</p>
-          <p class="text-sm text-slate-600 sm:text-base">Incluye inputs de texto, selects, textarea, radios, checkboxes, campos deshabilitados y un caso de multiples checks con el mismo name.</p>
+          <p class="text-sm text-slate-600 sm:text-base">Incluye inputs de texto, selects, textarea, radios, checkboxes, campos deshabilitados, paths tipo <strong>address.city</strong> y multiples checks con el mismo name.</p>
         </div>
         <div class="rounded-2xl border border-slate-200 bg-slate-900 p-4 text-slate-100 shadow-lg lg:max-w-sm">
           <p class="text-xs tracking-widest text-slate-400">OBSERVACIONES</p>
@@ -37,6 +37,7 @@
             <li>Los campos deshabilitados siguen entrando en la serializacion actual.</li>
             <li>Si varios checkboxes comparten <strong>name</strong> pero tienen distinto <strong>data-field</strong>, se serializan por separado.</li>
             <li>Si varios checkboxes comparten el mismo <strong>data-field</strong>, se agregan en un array de valores.</li>
+            <li>Los <strong>data-field</strong> con rutas generan objetos anidados y se pueden hidratar con <strong>apply</strong>.</li>
           </ul>
         </div>
       </div>
@@ -115,6 +116,54 @@
               <span class="font-medium">Biografia</span>
               <textarea class="min-h-32 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none ring-0" data-field="bio">Primera programadora, interesada en metodos analiticos.</textarea>
             </label>
+
+            <fieldset class="space-y-3 rounded-xl border border-sky-200 bg-sky-50/70 p-4">
+              <legend class="px-1 text-sm font-medium text-sky-900">Rutas data-field (address.*)</legend>
+              <p class="text-xs text-sky-800">Prueba de serializacion/hidratacion con claves anidadas usando notacion de punto.</p>
+
+              <label class="block space-y-2 text-sm text-slate-700">
+                <span class="font-medium">Ciudad</span>
+                <input class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none ring-0" type="text" data-field="address.city" value="Madrid">
+              </label>
+
+              <div class="grid gap-3 sm:grid-cols-2">
+                <label class="block space-y-2 text-sm text-slate-700">
+                  <span class="font-medium">Codigo postal</span>
+                  <input class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none ring-0" type="number" data-field="address.zip" value="28001">
+                </label>
+
+                <label class="block space-y-2 text-sm text-slate-700">
+                  <span class="font-medium">Region</span>
+                  <input class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none ring-0" type="text" data-field="address.region" value="Comunidad de Madrid">
+                </label>
+              </div>
+
+              <label class="block space-y-2 text-sm text-slate-700">
+                <span class="font-medium">Pais (codigo)</span>
+                <select class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none ring-0" data-field="address.countryCode">
+                  <option value="es" selected>ES</option>
+                  <option value="mx">MX</option>
+                  <option value="ar">AR</option>
+                </select>
+              </label>
+
+              <div class="rounded-lg border border-emerald-200 bg-white/70 p-3">
+                <p class="mb-2 text-xs font-medium text-emerald-900">Etiquetas de direccion (mismo data-field anidado)</p>
+                <label class="flex items-center gap-3 text-sm text-emerald-900">
+                  <input type="checkbox" name="addressTags" data-field="address.tags" value="home" checked>
+                  <span>home</span>
+                </label>
+                <label class="mt-2 flex items-center gap-3 text-sm text-emerald-900">
+                  <input type="checkbox" name="addressTags" data-field="address.tags" value="office" checked>
+                  <span>office</span>
+                </label>
+                <label class="mt-2 flex items-center gap-3 text-sm text-emerald-900">
+                  <input type="checkbox" name="addressTags" data-field="address.tags" value="billing">
+                  <span>billing</span>
+                </label>
+              </div>
+
+            </fieldset>
           </section>
 
           <section class="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
@@ -186,6 +235,20 @@
                 <span>Flag deshabilitado y marcado</span>
               </label>
             </fieldset>
+
+            <fieldset class="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+              <legend class="px-1 text-sm font-medium text-emerald-900">Preferencias anidadas</legend>
+              <p class="text-xs text-emerald-800">Checkboxes con rutas y grupo multiple anidado para validar arrays en paths.</p>
+
+              <label class="flex items-center gap-3 text-sm text-emerald-900">
+                <input type="checkbox" data-field="preferences.notifications.email" checked>
+                <span>Notificar por email</span>
+              </label>
+              <label class="flex items-center gap-3 text-sm text-emerald-900">
+                <input type="checkbox" data-field="preferences.notifications.sms">
+                <span>Notificar por SMS</span>
+              </label>
+            </fieldset>
           </section>
         </div>
       </form>
@@ -207,7 +270,7 @@
         <section class="mt-4 space-y-2">
           <h3 class="text-xs font-semibold tracking-widest text-slate-500">QUERY STRING PARA GET</h3>
           <div class="min-h-24 overflow-auto break-all rounded-2xl bg-slate-950 p-4 text-xs leading-5 text-sky-300 shadow-inner"><div id="query-output"></div></div>
-          <p class="text-xs text-slate-500">Formato: clave repetida para arrays, por ejemplo topics=ui&topics=ops.</p>
+          <p class="text-xs text-slate-500">Formato: clave repetida para arrays y notacion punto para rutas, por ejemplo address.city=Madrid&address.tags=home.</p>
         </section>
 
         <section class="mt-4 space-y-2">
@@ -254,12 +317,25 @@
       level: 9,
       country: 'ar',
       bio: 'Pionera en compiladores y arquitecturas de software.',
+      address: {
+        city: 'Valencia',
+        zip: 46001,
+        region: 'Comunidad Valenciana',
+        countryCode: 'es',
+        tags: ['office', 'billing']
+      },
       acceptTerms: 'yes',
       plan: 'enterprise',
       channelEmail: true,
       channelSms: true,
       channelPush: false,
       topics: ['ui', 'ops'],
+      preferences: {
+        notifications: {
+          email: true,
+          sms: true
+        }
+      },
       internalCode: 'LOCK-999',
       disabledFlag: false
     };
