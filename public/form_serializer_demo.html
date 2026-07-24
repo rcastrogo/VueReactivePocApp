@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Form Serializer Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="/css/tailwind.css" rel="stylesheet">
+  <script src="/js/reactivity.global.js"></script>
+  <script src="/js/lib.js"></script>
+  <script src="/js/form-serializer.js"></script>
+</head>
+
+<body class="bg-linear-to-b overflow-auto from-slate-100 via-slate-50 to-amber-50 p-5 text-slate-900 sm:p-8"
+  style="font-family: 'Space Grotesk', sans-serif;">
+  <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+    <div class="absolute -left-16 top-10 h-56 w-56 rounded-full bg-sky-200/50 blur-3xl"></div>
+    <div class="absolute right-0 top-1/3 h-72 w-72 rounded-full bg-amber-200/45 blur-3xl"></div>
+    <div class="absolute bottom-0 left-1/3 h-52 w-52 rounded-full bg-emerald-200/40 blur-3xl"></div>
+  </div>
+
+  <main class="mx-auto max-w-6xl space-y-6">
+    <section class="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-xl shadow-slate-300/30 backdrop-blur-sm sm:p-8">
+      <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div class="space-y-3">
+          <p class="text-xs font-semibold tracking-[0.22em] text-slate-500">FORM SERIALIZER LAB</p>
+          <h1 class="text-3xl font-bold leading-tight text-slate-900 sm:text-5xl">Prueba visual de serializacion de formularios</h1>
+          <p class="text-sm text-slate-600 sm:text-base">Escenario manual para inspeccionar como se serializan distintos tipos de campos usando <strong>data-field</strong>.</p>
+          <p class="text-sm text-slate-600 sm:text-base">Incluye inputs de texto, selects, textarea, radios, checkboxes, campos deshabilitados y un caso de multiples checks con el mismo name.</p>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-slate-900 p-4 text-slate-100 shadow-lg lg:max-w-sm">
+          <p class="text-xs tracking-widest text-slate-400">OBSERVACIONES</p>
+          <ul class="mt-3 space-y-2 text-sm text-slate-200">
+            <li>Los campos deshabilitados siguen entrando en la serializacion actual.</li>
+            <li>Si varios checkboxes comparten <strong>name</strong> pero tienen distinto <strong>data-field</strong>, se serializan por separado.</li>
+            <li>Si varios checkboxes comparten el mismo <strong>data-field</strong>, se agregan en un array de valores.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <div class="w-full p-2 text-center">
+      <a class="tool-bar-button border-slate-200" href="/index.html">Home</a>
+      <a class="tool-bar-button border-slate-200" href="/components_02_demo.html">Components</a>
+      <a class="tool-bar-button border-slate-200" href="/evaluate_parse_tests.html">Parse/Evaluate</a>
+      <a class="tool-bar-button border-slate-200" href="/pipes_tests.html">Pipes</a>
+    </div>
+
+    <section class="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+      <form id="serializer-form" class="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur-sm">
+        <header class="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p class="text-xs font-semibold tracking-[0.18em] text-slate-500">DATA FIELD MATRIX</p>
+            <h2 class="text-xl font-bold text-slate-900">Formulario de ejemplo</h2>
+            <p class="mt-1 text-sm text-slate-600">Prueba manual completa de serialize, apply, clear y trackChanges sobre el mismo formulario.</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button id="serialize-button" type="button" class="tool-bar-button justify-center border-slate-200 bg-slate-900 text-white hover:bg-slate-800">
+              Serialize
+            </button>
+            <button id="query-button" type="button" class="tool-bar-button justify-center border-sky-200 bg-sky-600 text-white hover:bg-sky-500">
+              QueryString
+            </button>
+            <button id="apply-button" type="button" class="tool-bar-button justify-center border-emerald-200 bg-emerald-600 text-white hover:bg-emerald-500">
+              Apply ejemplo
+            </button>
+            <button id="clear-button" type="button" class="tool-bar-button justify-center border-rose-200 bg-rose-600 text-white hover:bg-rose-500">
+              Clear
+            </button>
+            <button id="track-button" type="button" class="tool-bar-button justify-center border-amber-200 bg-amber-500 text-white hover:bg-amber-400">
+              Iniciar trackChanges
+            </button>
+          </div>
+        </header>
+
+        <div class="grid gap-6 xl:grid-cols-2">
+          <section class="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+            <h3 class="text-sm font-bold uppercase tracking-wide text-slate-700">Campos basicos</h3>
+
+            <label class="block space-y-2 text-sm text-slate-700">
+              <span class="font-medium">Nombre completo</span>
+              <input class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none ring-0" type="text" data-field="fullName" value="Ada Lovelace">
+            </label>
+
+            <label class="block space-y-2 text-sm text-slate-700">
+              <span class="font-medium">Correo</span>
+              <input class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none ring-0" type="email" data-field="email" value="ada@example.dev">
+            </label>
+
+            <div class="grid gap-4 sm:grid-cols-2">
+              <label class="block space-y-2 text-sm text-slate-700">
+                <span class="font-medium">Edad</span>
+                <input class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none ring-0" type="number" data-field="age" value="36">
+              </label>
+
+              <label class="block space-y-2 text-sm text-slate-700">
+                <span class="font-medium">Nivel</span>
+                <input class="w-full" type="range" min="0" max="10" data-field="level" value="7">
+              </label>
+            </div>
+
+            <label class="block space-y-2 text-sm text-slate-700">
+              <span class="font-medium">Pais</span>
+              <select class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none ring-0" data-field="country">
+                <option value="es">Espana</option>
+                <option value="mx" selected>Mexico</option>
+                <option value="ar">Argentina</option>
+              </select>
+            </label>
+
+            <label class="block space-y-2 text-sm text-slate-700">
+              <span class="font-medium">Biografia</span>
+              <textarea class="min-h-32 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none ring-0" data-field="bio">Primera programadora, interesada en metodos analiticos.</textarea>
+            </label>
+          </section>
+
+          <section class="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+            <h3 class="text-sm font-bold uppercase tracking-wide text-slate-700">Checks, radios y casos limite</h3>
+
+            <label class="flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+              <input class="mt-1" type="checkbox" data-field="acceptTerms" checked>
+              <span><strong class="block text-slate-900">Acepta terminos</strong>Checkbox simple booleano.</span>
+            </label>
+
+            <fieldset class="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+              <legend class="px-1 text-sm font-medium text-slate-900">Plan seleccionado</legend>
+              <label class="flex items-center gap-3 text-sm text-slate-700">
+                <input type="radio" name="plan" data-field="plan" value="starter">
+                <span>Starter</span>
+              </label>
+              <label class="flex items-center gap-3 text-sm text-slate-700">
+                <input type="radio" name="plan" data-field="plan" value="pro" checked>
+                <span>Pro</span>
+              </label>
+              <label class="flex items-center gap-3 text-sm text-slate-700">
+                <input type="radio" name="plan" data-field="plan" value="enterprise">
+                <span>Enterprise</span>
+              </label>
+            </fieldset>
+
+            <fieldset class="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+              <legend class="px-1 text-sm font-medium text-slate-900">Mismo name, distinto data-field</legend>
+              <p class="text-xs text-slate-500">Aqui el serializer ignora <strong>name</strong> y usa cada <strong>data-field</strong> como clave.</p>
+              <label class="flex items-center gap-3 text-sm text-slate-700">
+                <input type="checkbox" name="channels" data-field="channelEmail" checked>
+                <span>Email</span>
+              </label>
+              <label class="flex items-center gap-3 text-sm text-slate-700">
+                <input type="checkbox" name="channels" data-field="channelSms">
+                <span>SMS</span>
+              </label>
+              <label class="flex items-center gap-3 text-sm text-slate-700">
+                <input type="checkbox" name="channels" data-field="channelPush" checked>
+                <span>Push</span>
+              </label>
+            </fieldset>
+
+            <fieldset class="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <legend class="px-1 text-sm font-medium text-amber-900">Mismo name y mismo data-field</legend>
+              <p class="text-xs text-amber-800">Este bloque ahora prueba la agregacion por clave repetida: si hay varios checks seleccionados con la misma clave, se serializan como array.</p>
+              <label class="flex items-center gap-3 text-sm text-amber-900">
+                <input type="checkbox" name="topics" data-field="topics" value="ui" checked>
+                <span>UI</span>
+              </label>
+              <label class="flex items-center gap-3 text-sm text-amber-900">
+                <input type="checkbox" name="topics" data-field="topics" value="api" checked>
+                <span>API</span>
+              </label>
+              <label class="flex items-center gap-3 text-sm text-amber-900">
+                <input type="checkbox" name="topics" data-field="topics" value="ops">
+                <span>Ops</span>
+              </label>
+            </fieldset>
+
+            <fieldset class="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+              <legend class="px-1 text-sm font-medium text-slate-900">Campos deshabilitados</legend>
+              <label class="block space-y-2 text-sm text-slate-700">
+                <span class="font-medium">Codigo interno</span>
+                <input class="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-slate-500" type="text" data-field="internalCode" value="LOCK-204" disabled>
+              </label>
+              <label class="flex items-center gap-3 text-sm text-slate-700">
+                <input type="checkbox" data-field="disabledFlag" checked disabled>
+                <span>Flag deshabilitado y marcado</span>
+              </label>
+            </fieldset>
+          </section>
+        </div>
+      </form>
+
+      <aside class="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur-sm">
+        <header class="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">Salida de pruebas</h2>
+            <p class="text-sm text-slate-600">Paneles para serialize, modelo de apply y eventos emitidos por trackChanges.</p>
+          </div>
+          <span id="tracking-status" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">TRACK OFF</span>
+        </header>
+
+        <section class="space-y-2">
+          <h3 class="text-xs font-semibold tracking-widest text-slate-500">JSON SERIALIZADO</h3>
+          <pre class="min-h-64 overflow-auto rounded-2xl bg-slate-950 p-4 text-sm leading-6 text-emerald-300 shadow-inner"><code id="serialized-output">{}</code></pre>
+        </section>
+
+        <section class="mt-4 space-y-2">
+          <h3 class="text-xs font-semibold tracking-widest text-slate-500">QUERY STRING PARA GET</h3>
+          <div class="min-h-24 overflow-auto break-all rounded-2xl bg-slate-950 p-4 text-xs leading-5 text-sky-300 shadow-inner"><div id="query-output"></div></div>
+          <p class="text-xs text-slate-500">Formato: clave repetida para arrays, por ejemplo topics=ui&topics=ops.</p>
+        </section>
+
+        <section class="mt-4 space-y-2">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-semibold tracking-widest text-slate-500">MODELO PARA APPLY</h3>
+            <button id="reset-model-button" type="button" class="tool-bar-button border-slate-200 text-xs">Reset modelo</button>
+          </div>
+          <textarea id="apply-model"
+            class="min-h-36 w-full rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-700 outline-none"
+            spellcheck="false"></textarea>
+        </section>
+
+        <section class="mt-4 space-y-2">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-semibold tracking-widest text-slate-500">EVENTOS TRACKCHANGES</h3>
+            <button id="clear-events-button" type="button" class="tool-bar-button border-slate-200 text-xs">Limpiar eventos</button>
+          </div>
+          <pre class="min-h-56 overflow-auto rounded-2xl bg-slate-950 p-4 text-xs leading-5 text-cyan-300 shadow-inner"><code id="track-output">[]</code></pre>
+        </section>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById('serializer-form');
+    const output = document.getElementById('serialized-output');
+    const queryOutput = document.getElementById('query-output');
+    const trackOutput = document.getElementById('track-output');
+    const trackStatus = document.getElementById('tracking-status');
+    const applyModelTextarea = document.getElementById('apply-model');
+
+    const serializeButton = document.getElementById('serialize-button');
+    const queryButton = document.getElementById('query-button');
+    const applyButton = document.getElementById('apply-button');
+    const clearButton = document.getElementById('clear-button');
+    const trackButton = document.getElementById('track-button');
+    const clearEventsButton = document.getElementById('clear-events-button');
+    const resetModelButton = document.getElementById('reset-model-button');
+
+    const sampleModel = {
+      fullName: 'Grace Hopper',
+      email: 'grace@example.dev',
+      age: 55,
+      level: 9,
+      country: 'ar',
+      bio: 'Pionera en compiladores y arquitecturas de software.',
+      acceptTerms: 'yes',
+      plan: 'enterprise',
+      channelEmail: true,
+      channelSms: true,
+      channelPush: false,
+      topics: ['ui', 'ops'],
+      internalCode: 'LOCK-999',
+      disabledFlag: false
+    };
+
+    let trackEvents = [];
+    let unsubscribeTrack = null;
+
+    function renderSerialization() {
+      const data = rcg.formSerializer.serialize(form);
+      output.textContent = JSON.stringify(data, null, 2);
+      return data;
+    }
+
+    function renderQueryString(model) {
+      const data = model ?? rcg.formSerializer.serialize(form);
+      queryOutput.textContent = rcg.formSerializer.toQueryString(data);
+    }
+
+    function renderTrackEvents() {
+      trackOutput.textContent = JSON.stringify(trackEvents, null, 2);
+    }
+
+    function setTrackingState(isEnabled) {
+      trackStatus.textContent = isEnabled ? 'TRACK ON' : 'TRACK OFF';
+      trackStatus.className = isEnabled
+        ? 'rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700'
+        : 'rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700';
+      trackButton.textContent = isEnabled ? 'Detener trackChanges' : 'Iniciar trackChanges';
+    }
+
+    function normalizeTrackValue(value) {
+      if (typeof value === 'symbol') return String(value);
+      return value;
+    }
+
+    function getModelFromTextarea() {
+      try {
+        return JSON.parse(applyModelTextarea.value || '{}');
+      } catch (error) {
+        alert('JSON invalido para apply. Revisa el panel de modelo.');
+        throw error;
+      }
+    }
+
+    function resetModel() {
+      applyModelTextarea.value = JSON.stringify(sampleModel, null, 2);
+    }
+
+    function applyModel() {
+      const model = getModelFromTextarea();
+      rcg.formSerializer.apply(model, form);
+      const data = renderSerialization();
+      renderQueryString(data);
+    }
+
+    function clearForm() {
+      rcg.formSerializer.clear(form);
+      const data = renderSerialization();
+      renderQueryString(data);
+    }
+
+    function toggleTracking() {
+      if (unsubscribeTrack) {
+        unsubscribeTrack();
+        unsubscribeTrack = null;
+        setTrackingState(false);
+        return;
+      }
+
+      unsubscribeTrack = rcg.formSerializer.trackChanges(form, (change) => {
+        trackEvents.push({
+          at: new Date().toISOString(),
+          key: change.key,
+          value: normalizeTrackValue(change.value)
+        });
+        renderTrackEvents();
+        const data = renderSerialization();
+        renderQueryString(data);
+      });
+      setTrackingState(true);
+    }
+
+    function clearEvents() {
+      trackEvents = [];
+      renderTrackEvents();
+    }
+
+    serializeButton.addEventListener('click', () => {
+      const data = renderSerialization();
+      renderQueryString(data);
+    });
+    queryButton.addEventListener('click', () => {
+      const data = renderSerialization();
+      renderQueryString(data);
+    });
+    applyButton.addEventListener('click', applyModel);
+    clearButton.addEventListener('click', clearForm);
+    trackButton.addEventListener('click', toggleTracking);
+    clearEventsButton.addEventListener('click', clearEvents);
+    resetModelButton.addEventListener('click', resetModel);
+
+    resetModel();
+    renderTrackEvents();
+    setTrackingState(false);
+    const data = renderSerialization();
+    renderQueryString(data);
+  </script>
+</body>
+
+</html>
