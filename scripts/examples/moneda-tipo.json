@@ -1,0 +1,48 @@
+[
+  {
+    "itemName": "Moneda",
+    "collectionName": "Monedas",
+    "tableName": "TBL_MONEDAS",
+    "properties": [
+      {
+        "name": "Id",
+        "dbName": "ID_MONEDA",
+        "dbType": "int",
+        "isId": true,
+        "omitDal": false,
+        "readOnly": true
+      },
+      {
+        "name": "Descripcion",
+        "dbName": "DESCRIPCION",
+        "dbType": "string",
+        "isId": false,
+        "omitDal": false,
+        "readOnly": false
+      }
+    ]
+  },
+  {
+    "itemName": "Tipo",
+    "collectionName": "Tipos",
+    "tableName": "TBL_TIPOS",
+    "properties": [
+      {
+        "name": "Id",
+        "dbName": "ID_TIPO",
+        "dbType": "int",
+        "isId": true,
+        "omitDal": false,
+        "readOnly": true
+      },
+      {
+        "name": "Descripcion",
+        "dbName": "DESCRIPCION",
+        "dbType": "string",
+        "isId": false,
+        "omitDal": false,
+        "readOnly": false
+      }
+    ]
+  }
+]

@@ -1,0 +1,18 @@
+; ===========================================================
+; Dal.Repositories.MonedasRepository
+; ===========================================================
+#Dal.Repositories.MonedasRepository.OrderBy%Id ASC
+#Dal.Repositories.MonedasRepository.Delete%DELETE FROM TBL_MONEDAS WHERE Id=@Id
+#Dal.Repositories.MonedasRepository.Select%SELECT ID_MONEDA, DESCRIPCION FROM TBL_MONEDAS
+#Dal.Repositories.MonedasRepository.Insert%INSERT INTO TBL_MONEDAS (DESCRIPCION) VALUES(@DESCRIPCION); SELECT CAST(SCOPE_IDENTITY() AS BIGINT);
+#Dal.Repositories.MonedasRepository.Update%UPDATE TBL_MONEDAS SET DESCRIPCION = @DESCRIPCION WHERE Id=@Id
+
+
+; ===========================================================
+; Dal.Repositories.TiposRepository
+; ===========================================================
+#Dal.Repositories.TiposRepository.OrderBy%Id ASC
+#Dal.Repositories.TiposRepository.Delete%DELETE FROM TBL_TIPOS WHERE Id=@Id
+#Dal.Repositories.TiposRepository.Select%SELECT ID_TIPO, DESCRIPCION FROM TBL_TIPOS
+#Dal.Repositories.TiposRepository.Insert%INSERT INTO TBL_TIPOS (DESCRIPCION) VALUES(@DESCRIPCION); SELECT CAST(SCOPE_IDENTITY() AS BIGINT);
+#Dal.Repositories.TiposRepository.Update%UPDATE TBL_TIPOS SET DESCRIPCION = @DESCRIPCION WHERE Id=@Id

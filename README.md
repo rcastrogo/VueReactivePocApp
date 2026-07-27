@@ -34,6 +34,40 @@ npm run dev
 npm run css:build
 ```
 
+## Generador de codigo
+El repositorio incluye un generador en `scripts/code.cjs` con dos formas de uso.
+
+### 1. Ejecutarlo con npm y un JSON de ejemplo
+Genera los ficheros de una entidad de ejemplo desde `scripts/examples/usuario.json`:
+```bash
+npm run codegen:example
+```
+
+Si quieres usar otro JSON, ejecuta el script base y pasa tu archivo y salida:
+```bash
+npm run codegen -- -i ./ruta/a/tu-entidad.json -o ./src/_code
+```
+
+### 2. Usarlo directamente desde codigo o IA
+La funcion `generateAllFiles` esta exportada y acepta una entidad o un array de entidades. Devuelve los ficheros en memoria, sin necesidad de archivos temporales.
+
+```js
+const { generateAllFiles, writeGeneratedFiles } = require('./scripts/code.cjs');
+
+const files = generateAllFiles({
+	itemName: 'Usuario',
+	collectionName: 'Usuarios',
+	tableName: 'TBL_USUARIOS',
+	namespace: '.Seguridad',
+	properties: [
+		{ name: 'Id', dbName: 'ID_USUARIO', dbType: 'long', isId: true, omitDal: false, readOnly: true },
+		{ name: 'Nombre', dbName: 'NOMBRE', dbType: 'string', isId: false, omitDal: false, readOnly: false }
+	]
+});
+
+writeGeneratedFiles(files, './src/_code');
+```
+
 ## Notas
 - `@vue/reactivity` se carga por CDN desde `public/js/main.js`.
 - BrowserSync sirve la carpeta `public` en `http://localhost:3000`.

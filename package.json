@@ -6,7 +6,9 @@
     "dev": "npm-run-all --parallel css:watch serve",
     "serve": "browser-sync start --server public --files public/**/*.html,public/css/**/*.css,public/js/**/*.js --port 3000 --no-open --reload-debounce 200",
     "css:watch": "npx @tailwindcss/cli -i ./public/css/app.css -o ./public/css/tailwind.css --watch",
-    "css:build": "npx @tailwindcss/cli -i ./public/css/app.css -o ./public/css/tailwind.css --minify"
+    "css:build": "npx @tailwindcss/cli -i ./public/css/app.css -o ./public/css/tailwind.css --minify",
+    "codegen": "node ./scripts/code.cjs",
+    "codegen:example": "node ./scripts/code.cjs -i ./scripts/examples/usuario.json -o ./src/code"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.2",

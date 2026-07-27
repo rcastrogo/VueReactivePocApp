@@ -1,0 +1,40 @@
+{
+  "itemName": "Usuario",
+  "collectionName": "Usuarios",
+  "tableName": "TBL_USUARIOS",
+  "namespace": ".Seguridad",
+  "properties": [
+    {
+      "name": "Id",
+      "dbName": "ID_USUARIO",
+      "dbType": "long",
+      "isId": true,
+      "omitDal": false,
+      "readOnly": true
+    },
+    {
+      "name": "Nombre",
+      "dbName": "NOMBRE",
+      "dbType": "string",
+      "isId": false,
+      "omitDal": false,
+      "readOnly": false
+    },
+    {
+      "name": "FechaAlta",
+      "dbName": "FECHA_ALTA",
+      "dbType": "DateTime",
+      "isId": false,
+      "omitDal": false,
+      "readOnly": false
+    },
+    {
+      "name": "Activo",
+      "dbName": "ACTIVO",
+      "dbType": "boolean",
+      "isId": false,
+      "omitDal": false,
+      "readOnly": false
+    }
+  ]
+}
