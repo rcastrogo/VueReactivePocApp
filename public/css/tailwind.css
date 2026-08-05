@@ -422,9 +422,6 @@
   .grid {
     display: grid;
   }
-  .hidden {
-    display: none;
-  }
   .inline-block {
     display: inline-block;
   }
@@ -493,9 +490,6 @@
   }
   .min-h-64 {
     min-height: calc(var(--spacing) * 64);
-  }
-  .min-h-128 {
-    min-height: calc(var(--spacing) * 128);
   }
   .min-h-\[2\.5rem\] {
     min-height: 2.5rem;
