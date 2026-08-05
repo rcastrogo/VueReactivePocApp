@@ -3,7 +3,10 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "target": "ES2022",
-    "checkJs": true
+    "checkJs": true,
+    "noImplicitAny":false,
+    "strictFunctionTypes": false,
+    "skipLibCheck": true
   },
   "exclude": ["node_modules"]
 }

@@ -1,40 +1,119 @@
-import {neon} from '@neondatabase/serverless';
+import { userRepository } from '../lib/repo/users.js';
+import { responseWrapper } from '../lib/response.js';
+
+/**
+ * Auxiliar para inyectar cabeceras CORS en todas las respuestas
+ * @param {import('@vercel/node').VercelResponse} res
+ */
+function setCorsHeaders(res) {
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*'); // En producción puedes restringir a tu dominio
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+}
 
 /**
  * @param {import('@vercel/node').VercelRequest} req
  * @param {import('@vercel/node').VercelResponse} res
  */
 export default async function handler(req, res) {
-  console.log(req.method || 'GET');
+  // =========================================================
+  // Cabeceras CORS
+  // =========================================================
+  setCorsHeaders(res);
+  // =========================================================
+  // Respuesta inmediata para peticiones Preflight CORS
+  // =========================================================
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  
+  const { 
+    ok, 
+    created, 
+    badRequest, 
+    notFound, 
+    methodNotAllowed, 
+    serverError 
+  } = responseWrapper.wrapp(res);  
+
   try {
-    if (!process.env.DATABASE_URL) {
-      throw new Error('DATABASE_URL no está definida en las variables de entorno.');
-    }
-    const sql = neon(process.env.DATABASE_URL);
+    // =================================================================================
+    // GET: Obtener todos los usuarios o uno por query params (?id=1)
+    // =================================================================================
     if (req.method === 'GET') {
-      const users = await sql`SELECT id, nif, nombre, descripcion, fecha_de_alta, fecha_de_baja FROM usuario LIMIT 100`;
-      return res.status(200).json(users);
+      const { id } = req.query;
+      if (id) {
+        const [user] = await userRepository.getById(id);
+        if (!user) return notFound('Usuario no encontrado');
+        return ok(user);
+      }
+      const users = await userRepository.getAll();
+      return ok(users);
+    }
+    // =================================================================================
+    // POST: Crear usuario (id y fechas gestionados por Postgres)
+    // =================================================================================    
+    if (req.method === 'POST') {
+
+      const { intent, id } = req.body || {};
+
+      if (intent === 'deactivate') {
+        if (!id) return badRequest('Se requiere id para la baja');
+
+        const [user] = await userRepository.deactivate(id);
+        if (!user) return notFound('Usuario no encontrado o ya inactivo');
+
+        return ok({ message: 'Usuario dado de baja exitosamente', user });
+      }
+      const { nif, nombre, descripcion } = req.body || {};
+
+      if (!nif || !nombre) {
+        return badRequest('Campos requeridos: nif y nombre son obligatorios');
+      }
+      const [newUser] = await userRepository.create({ nif, nombre, descripcion });
+      return created(newUser);
+    }
+    // =================================================================================
+    // PUT: Actualizar usuario completo mediante ?id=X o body.id
+    // =================================================================================
+    if (req.method === 'PUT') {
+      const id = req.query.id || req.body?.id;
+      const { nif, nombre, descripcion } = req.body || {};
+
+      if (!id) {
+        return badRequest('Se requiere id para actualizar (por query param ?id=X o en el body)');
+      }
+      if (!nif || !nombre) {
+        return badRequest('Campos requeridos faltantes: nif y nombre');
+      }
+
+      const [updatedUser] = await userRepository.update(id, { nif, nombre, descripcion });
+      if (!updatedUser) {
+        return notFound('Usuario no encontrado');
+      }
+
+      return ok(updatedUser);
+    }
+    // =================================================================================
+    // DELETE: Eliminar usuario mediante ?id=X o body.id
+    // =================================================================================
+    if (req.method === 'DELETE') {
+      const id = req.query.id || req.body?.id;
+
+      if (!id) {
+        return badRequest('Se requiere id para eliminar');
+      }
+
+      const [deleted] = await userRepository.delete(id);
+      if (!deleted) {
+        return notFound('Usuario no encontrado');
+      }
+
+      return ok({ message: 'Usuario eliminado correctamente', id: deleted.id });
     }
 
-    // if (req.method === 'POST') {
-    //   const { name, email } = req.body || {};
-      
-    //   if (!name || !email) {
-    //     return res.status(400).json({ error: 'Faltan campos requeridos' });
-    //   }
-
-    //   const [newUser] = await sql`
-    //     INSERT INTO users (name, email)
-    //     VALUES (${name}, ${email})
-    //     RETURNING id, name, email
-    //   `;
-
-    //   return res.status(201).json(newUser);
-    // }
-
-    return res.status(405).json({ error: 'Method Not Allowed' });
+    return methodNotAllowed();
   } catch (error) {
     console.error('Error en base de datos:', error);
-    return res.status(500).json({ error: 'Internal Server Error' });
+    return serverError();
   }
 }
