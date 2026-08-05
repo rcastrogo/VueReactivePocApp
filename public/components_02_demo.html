@@ -55,6 +55,16 @@
 				[delay]="1000">
 			</div>		
 		</section>
+		<section class="rounded-3xl border border-white/70 bg-white/80 shadow-xl shadow-slate-300/30 backdrop-blur-sm">
+			<div 
+				id="async-loader-02"
+				class="max-h-60 overflow-auto"
+				data-component="app-async" 
+				[url]="api/users?action=ssr" 
+				[loading]="Cargando usuarios desde PostgreSQL..." 
+				[delay]="1000">
+			</div>	
+		</section>
 
 		<section class="grid gap-6 lg:grid-cols-2">
 			<article class="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm">
