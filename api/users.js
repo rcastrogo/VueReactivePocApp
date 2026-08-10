@@ -139,6 +139,16 @@ export default async function handler(req, res) {
 
         return ok({ message: 'Usuario dado de baja exitosamente', user });
       }
+
+      if (intent === 'activate') {
+        if (!id) return badRequest('Se requiere id para la activacion');
+
+        const [user] = await userRepository.activate(id);
+        if (!user) return notFound('Usuario no encontrado o ya activo');
+
+        return ok({ message: 'Usuario activado exitosamente', user });
+      }
+
       const { nif, nombre, descripcion } = req.body || {};
 
       if (!nif || !nombre) {

@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Usuarios CRUD API</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="/css/tailwind.css" rel="stylesheet">
+  <script src="/js/reactivity.global.js"></script>
+  <script src="/js/lib.js"></script>
+  <script src="/js/components_02.js"></script>
+  <script src="/js/ai-gemini.js"></script>
+</head>
+
+<body class="bg-linear-to-b overflow-auto from-slate-100 via-slate-50 to-amber-50 p-5 text-slate-900 sm:p-8"
+  style="font-family: 'Space Grotesk', sans-serif;">
+  <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+    <div class="absolute -left-16 top-10 h-56 w-56 rounded-full bg-sky-200/50 blur-3xl"></div>
+    <div class="absolute right-0 top-1/3 h-72 w-72 rounded-full bg-amber-200/45 blur-3xl"></div>
+    <div class="absolute bottom-0 left-1/3 h-52 w-52 rounded-full bg-emerald-200/40 blur-3xl"></div>
+  </div>
+
+  <main class="mx-auto max-w-6xl space-y-6">
+    <section class="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-xl shadow-slate-300/30 backdrop-blur-sm sm:p-8">
+      <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div class="space-y-3">
+          <p class="text-xs font-semibold tracking-[0.22em] text-slate-500">REACTIVE UI LAB</p>
+          <h1 class="text-3xl font-bold leading-tight text-slate-900 sm:text-5xl">CRUD API de Usuarios con IA ✨</h1>
+          <p class="text-sm text-slate-600 sm:text-base">Panel para listar, crear, editar, activar/desactivar y eliminar usuarios usando <strong>/api/users</strong>.</p>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-slate-900 p-4 text-slate-100 shadow-lg">
+          <p class="text-xs text-center tracking-widest text-slate-400">ESTADO</p>
+          <p data-bind="class:
+              mt-2 text-center text-sm font-semibold
+              text-emerald-300 ? !estado.error && !estado.loading
+              text-amber-300 ? estado.loading
+              text-rose-300 ? estado.error;
+              estado.status" class="mt-2 text-center text-sm font-semibold">
+          </p>
+          <button on-click="recargarUsuarios" class="tool-bar-button mt-4 w-full justify-center border-slate-700 bg-slate-800 text-white hover:bg-slate-700">
+            Recargar usuarios
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <div class="w-full p-2 text-center">
+      <a class="tool-bar-button border-slate-200" href="/index.html">Home</a>
+      <a class="tool-bar-button border-slate-200" href="/components_02_demo.html">Components</a>
+      <a class="tool-bar-button border-slate-200" href="/form_serializer_demo.html">Serializer</a>
+      <a class="tool-bar-button border-slate-200" href="/evaluate_parse_tests.html">Parse/Evaluate</a>
+      <a class="tool-bar-button border-slate-200" href="/pipes_tests.html">Pipes</a>
+    </div>
+
+    <section class="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
+      <section class="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur-sm">
+        <header class="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p class="text-xs font-semibold tracking-[0.18em] text-slate-500">USUARIOS</p>
+            <h2 class="text-xl font-bold text-slate-900">Listado actual</h2>
+            <p class="mt-1 text-sm text-slate-600">Selecciona un usuario para editar sus datos en el panel derecho.</p>
+          </div>
+          <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600"
+            data-bind="estado.users.length | sufix: usuarios"></span>
+        </header>
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-end gap-2 p-2 rounded-xl border border-slate-200 bg-white">
+          <textarea 
+            on-input="actualizarCampo:prompt"
+            data-bind="value:estado.form.prompt"
+            class="w-full flex-1 resize-none border-0 bg-transparent p-2 text-sm text-slate-700 focus:outline-none focus:ring-0" 
+            rows="2" 
+            placeholder="Escribe tu petición aquí..."></textarea>
+          <button type="button" on-click="sendPromptToAI" class="tool-bar-button border-slate-200 self-end sm:self-auto shrink-0">✨</button>         
+        </div>
+        <div class="mt-2 bg-white">
+          <div 
+            data-if="estado.form.ai_response" 
+            class="text-sm rounded-xl border border-slate-200 p-2 max-h-32 overflow-y-auto" 
+            data-bind="html:estado.form.ai_response"></div>
+          <div data-if="estado.loading_ai_response">
+            <div data-component="app-spinner" [size]="sm">
+            </div>
+          </div>
+        </div>
+        <div class="overflow-auto rounded-xl border border-slate-200 mt-2">
+          <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50 text-slate-600">
+              <tr>
+                <th class="px-3 py-2 text-left font-semibold">ID</th>
+                <th class="px-3 py-2 text-left font-semibold">NIF</th>
+                <th class="px-3 py-2 text-left font-semibold">Nombre</th>
+                <th class="px-3 py-2 text-left font-semibold">Descripción</th>
+                <th class="px-3 py-2 text-left font-semibold">Alta</th>
+                <th class="px-3 py-2 text-left font-semibold">Baja</th>
+                <th class="px-3 py-2 text-left font-semibold">Estado</th>
+              </tr>
+            </thead>
+            <tbody 
+              class="divide-y divide-slate-100 bg-white" 
+              data-bind="class: 
+                divide-y divide-slate-100 bg-white
+                hidden ? estado.loading"
+              data-each="user in estado.users">
+              <tr data-bind="class:
+                    cursor-pointer transition-colors
+                    bg-sky-50 ring-1 ring-sky-300 ? user.id == estado.selectedId
+                    hover:bg-slate-50 ? user.id != estado.selectedId"
+                on-click="seleccionarUsuario:$user.id">
+                <td class="px-3 py-2 font-semibold text-slate-700" data-bind="user.id"></td>
+                <td class="px-3 py-2 text-slate-700" data-bind="user.nif"></td>
+                <td class="px-3 py-2 text-slate-900" data-bind="user.nombre"></td>
+                <td class="px-3 py-2 text-slate-900" data-bind="user.descripcion"></td>
+                <td class="px-3 py-2 text-slate-600 text-center" data-bind="html:user.fecha_de_alta | formatDate | asDateTime | fallback:-"></td>
+                <td class="px-3 py-2 text-slate-600 text-center">
+                  <div data-component="app-date" [value]="user.fecha_de_baja" [fallback]="-"></div>
+                </td>
+                <td class="px-3 py-2">
+                  <span data-bind="class:
+                      rounded-full px-2 py-1 text-xs font-semibold
+                      bg-rose-100 text-rose-700 ? user.fecha_de_baja
+                      bg-emerald-100 text-emerald-700 ? !user.fecha_de_baja;
+                      user.fecha_de_baja | if:Inactivo:Activo"></span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="p-4 text-sm text-slate-500" data-if="estado.users.length === 0">
+            No hay usuarios para mostrar.
+          </div>
+        </div>
+      </section>
+
+      <aside class="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur-sm">
+        <header class="mb-4">
+          <p class="text-xs font-semibold tracking-[0.18em] text-slate-500">DETALLE</p>
+          <h2 class="text-xl font-bold text-slate-900">Alta / Edición</h2>
+          <p data-bind="estado.selectedId | if:Editando usuario seleccionado:Modo nuevo usuario."
+            class="mt-1 text-sm text-slate-600"></p>
+        </header>
+
+        <form on-submit="guardarUsuario" class="space-y-1">
+          <div class="grid grid-cols-2 gap-3">
+            <label class="text-xs font-semibold text-slate-600">ID
+              <input name="id" data-bind="value:estado.form.id"
+                class="app-input mt-1 w-full rounded-lg border border-slate-200 p-2" type="text" disabled readonly>
+            </label>
+            <label class="text-xs font-semibold text-slate-600">NIF *
+              <input name="nif" data-bind="value:estado.form.nif" on-input="actualizarCampo:nif"
+                class="app-input mt-1 w-full rounded-lg border border-slate-200 p-2" type="text">
+            </label>
+          </div>
+
+          <div class="grid grid-cols-1 gap-3">
+            <label class="text-xs font-semibold text-slate-600">Nombre *
+              <input name="nombre" data-bind="value:estado.form.nombre" on-input="actualizarCampo:nombre"
+                class="app-input mt-1 w-full rounded-lg border border-slate-200 p-2" type="text">
+            </label>
+          </div>
+
+          <div class="grid grid-cols-1 gap-3">
+            <label class="text-xs font-semibold text-slate-600">Descripción
+              <input name="descripcion" 
+                data-bind="value:estado.form.descripcion"
+                on-input="actualizarCampo:descripcion" 
+                class="app-input mt-1 w-full rounded-lg border border-slate-200 p-2">
+            </label>
+          </div>
+
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label class="text-xs font-semibold text-slate-600">Fecha de alta
+              <input name="fecha_de_alta" data-bind="value:estado.form.fecha_de_alta | formatDate"
+                class="app-input mt-1 w-full rounded-lg border border-slate-200 p-2" type="text" disabled readonly>
+            </label>
+            <label class="text-xs font-semibold text-slate-600">Fecha de baja
+              <input name="fecha_de_baja" data-bind="value:estado.form.fecha_de_baja | formatDate"
+                class="app-input mt-1 w-full rounded-lg border border-slate-200 p-2" type="text" disabled readonly>
+            </label>
+          </div>
+
+          <div class="flex flex-wrap gap-2 pt-2">            
+            <button type="button" on-click="callAI" class="tool-bar-button border-slate-200">✨</button>
+            <button type="button" on-click="nuevoUsuario" class="tool-bar-button border-slate-200">Nuevo</button>
+            <button type="submit" class="tool-bar-button border-slate-200">Guardar</button>
+            <button type="button" 
+              on-click="eliminarUsuario" 
+              data-bind="attr.disabled:estado.selectedId | not"
+              class="tool-bar-button border-slate-200">Eliminar</button>
+            <button type="button" 
+              on-click="alternarEstado"
+              data-bind="
+                attr.disabled:estado.selectedId | not;
+                isSelectedInactive | if:Activar:Desactivar"
+              class="tool-bar-button border-slate-200"></button>
+          </div>
+
+          <div class="m-2" data-bind="html:estado.form.ai_generated_content">
+          </div>
+        </form>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+
+    rcg.formatDate = (value) => {
+      if (!value) return '';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value);
+      return date.toLocaleString('es-ES', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      }).replace(',', '');
+    }
+
+    (function () {
+      const { reactive, computed } = VueReactivity;
+      // ════════════════════════════════════════════════════════════════════════════
+      // app-date
+      // Props : value, fallback
+      // ════════════════════════════════════════════════════════════════════════════
+      const APP_DATE = 'app-date';
+
+      const AppDate = rcg.defineComponent(APP_DATE, (ctx, emit, props) => {
+        
+        const formattedParts = computed(() => {
+          if (!props.value) return null;
+          const str = rcg.formatDate(props.value);
+          if(!str) return null;
+          const [datePart, timePart] = str.split(' ');
+          return { date: datePart, time: timePart };
+        });
+
+        const isValid = computed(() => formattedParts.value !== null);    
+        const dateText = computed(() => isValid.value ? formattedParts.value.date : '');
+        const timeText = computed(() => isValid.value ? formattedParts.value.time : '');
+        const fallbackText = computed(() => props.fallback ?? '-');
+        const handlers = {};
+        const local_ctx = { isValid, dateText, timeText, fallbackText };
+        const template = `
+          <div class="inline-block">
+            <span data-if="isValid" class="inline-flex items-center gap-1 p-1 rounded-lg text-sm bg-slate-400/10 border border-slate-300/20">
+              <span class="text-slate-600" data-bind="dateText"></span>
+              <span class="text-slate-400" data-bind="timeText"></span>
+            </span>
+            <span data-if="!isValid" data-bind="fallbackText" class="text-slate-600"></span>
+          </div>
+        `;
+        return {template, handlers, ctx: local_ctx
+        };
+      });
+      rcg.registerComponent(APP_DATE, AppDate);
+      rcg.registerPipe('formatDate', (val, args) => rcg.formatDate(val));
+      rcg.registerPipe('asDateTime', (val, args) => {
+        if(!val) return '';
+        const [date, time] = String(val).split(' ');
+        return `<span class="text-slate-600">${date}</span> <span class="text-slate-400">${time}</span>`;
+      });
+
+    })();
+
+    (function () {
+
+      const { reactive, computed } = VueReactivity;
+      const API_URL = '/api/users';
+
+      const estado = reactive({
+        loading: false,
+        loading_ai_response: false,
+        error: false,
+        status: 'Listo',
+        users: [],
+        users_t0: null,
+        selectedId: null,
+        form: {
+          id: '',
+          nif: '',
+          nombre: '',
+          descripcion: '',
+          fecha_de_alta: '',
+          fecha_de_baja: '',
+          prompt: '',
+          ai_generated_content: '',
+          ai_response: ''
+        }
+      });
+
+      const selectedUser = computed(() =>
+        estado.users.find((user) => Number(user.id) === Number(estado.selectedId)) || null
+      );
+
+      const isSelectedInactive = computed(() => Boolean(selectedUser.value?.fecha_de_baja));
+
+      function setStatus(text, kind = 'ok') {
+        estado.status = text;
+        estado.error = kind === 'error';
+      }
+
+      function setLoading(value) {
+        estado.loading = value;
+        if (value) setStatus('Cargando...', 'loading');
+      }
+
+      function clearForm() {
+        estado.form.id = '';
+        estado.form.nif = '';
+        estado.form.nombre = '';
+        estado.form.descripcion = '';
+        estado.form.fecha_de_alta = '';
+        estado.form.fecha_de_baja = '';
+        estado.form.ai_generated_content = '';
+      }
+
+      function fillForm(user) {
+        if (!user) {
+          clearForm();
+          return;
+        }
+        estado.form.id = String(user.id ?? '');
+        estado.form.nif = user.nif ?? '';
+        estado.form.nombre = user.nombre ?? '';
+        estado.form.descripcion = user.descripcion ?? '';
+        estado.form.fecha_de_alta = user.fecha_de_alta;
+        estado.form.fecha_de_baja = user.fecha_de_baja;
+        estado.form.ai_generated_content = '';
+      }
+
+      function waitingForAIResponse() {
+        estado.form.ai_generated_content = '<div class="mt-4" data-component="app-spinner" [size]="md" [label]="Generando contenido..."></div>';
+        queueMicrotask(() => {
+          const el = document.querySelector('[data-component=app-spinner]');
+          if(el) rcg.hydrate(el, {});
+        });
+      }
+
+      async function callAI() {
+        if(!selectedUser?.value) return;
+        waitingForAIResponse();
+        try {
+          const { html } = await rcg.ai.generateProfile(selectedUser.value);       
+          estado.form.ai_generated_content = html;
+        } catch (error) {
+          console.error('No se pudo generar el perfil:', error);
+        }
+      }
+
+      async function sendPromptToAI() {
+        if(!estado.form.prompt) return;
+        if(estado.users.length === 0) return;
+        try {
+          estado.form.ai_response = '';
+          estado.loading_ai_response = true;
+          const result = await rcg.ai.handleUserPrompt(estado.form.prompt, estado.users);
+          console.log('AI Response:', result);          
+          handleAIResponse(result);
+        } catch (error) {
+          console.error('No se pudo atender la petición:', error);
+           estado.form.ai_response = error;
+        }
+        estado.loading_ai_response = false;
+      }
+
+
+      handleAIResponse = (result) => {
+        if (!result) {
+          estado.form.ai_response = 'No se recibió respuesta del AI.';
+          return;
+        }
+        if (result.error) {
+          estado.form.ai_response = `Error: ${result.error}`;
+          return;
+        }
+        if (result.html) {
+          estado.form.ai_response = result.html;
+          return;
+        }
+        const ids = (result.userIds || []).map(id => Number(id));
+        switch (result.action) {
+          case 'modificar': {
+            if (Array.isArray(result.usersData) && result.usersData.length > 0) {
+              result.usersData.forEach(userMod => {
+                const modId = Number(userMod.id);
+                const indexCurrent = estado.users.findIndex(u => Number(u.id) === modId);
+                if (indexCurrent !== -1) {
+                  Object.assign(estado.users[indexCurrent], userMod);
+                }
+              });
+            }
+            break;
+          }
+
+          case 'borrar': {
+            if (ids.length > 0) {
+              estado.users = estado.users.filter(u => !ids.includes(Number(u.id)));
+              if (estado.selectedId && ids.includes(Number(estado.selectedId))) {
+                estado.selectedId = null;
+              }
+            }
+            break;
+          }
+
+          case 'filtrar': {
+            if (ids.length > 0) {
+              estado.users = estado.users.filter(u => ids.includes(Number(u.id)));
+            }
+            break;
+          }
+
+          case 'restaurar': {
+            estado.users = JSON.parse(JSON.stringify(estado.users_t0));
+            break;
+          }
+
+          case 'ordenar': {
+            if (ids.length > 0) {
+              const usersMap = new Map(estado.users.map(u => [Number(u.id), u]));
+              estado.users = ids.map(id => usersMap.get(Number(id))).filter(Boolean);
+            }
+            break;
+          }
+
+          case 'exportar': {
+            if (ids.length > 0) {
+              const aExportar = estado.users.filter(u => ids.includes(Number(u.id)));
+              this.exportarUsuariosJSON(aExportar);
+            }
+            break;
+          }
+
+          case 'ninguna':
+          default:
+            break;
+        }
+
+        estado.form.ai_response = result.texto || result.text || 'Operación procesada con éxito.';
+      };
+
+      // Helper opcional para la acción de exportar
+      exportarUsuariosJSON = (data) => {
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `exportacion_usuarios_${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      async function recargarUsuarios() {
+        setLoading(true);
+        try {
+          const users = await rcg.http.get(API_URL);
+          estado.users = Array.isArray(users) ? users : [];
+          estado.users_t0 = JSON.parse(JSON.stringify(estado.users));
+          if (!selectedUser.value) {
+            estado.selectedId = null;
+            clearForm();
+          } else {
+            fillForm(selectedUser.value);
+          }
+          setStatus('Usuarios cargados');
+        } catch (error) {
+          console.error(error);
+          setStatus(error?.message || 'Error cargando usuarios', 'error');
+        } finally {
+          estado.loading = false;
+          estado.form.prompt = '';
+        }
+      }
+
+      function seleccionarUsuario(eventData) {
+        const [id] = eventData.arg;
+        estado.selectedId = Number(id);
+        fillForm(selectedUser.value);
+        setStatus(`Editando usuario #${id}`);
+      }
+
+      function actualizarCampo(eventData) {
+        const [field] = eventData.arg;
+        const value = eventData.ev?.target?.value ?? '';
+        if (!(field in estado.form)) return;
+        estado.form[field] = value;
+      }
+
+      function nuevoUsuario() {
+        estado.selectedId = null;
+        clearForm();
+        setStatus('Modo nuevo usuario');
+      }
+
+      async function guardarUsuario(eventData) {
+        eventData.ev?.preventDefault();
+
+        const nif = estado.form.nif.trim();
+        const nombre = estado.form.nombre.trim();
+        const descripcion = estado.form.descripcion.trim();
+
+        if (!nif || !nombre) {
+          setStatus('NIF y nombre son obligatorios', 'error');
+          return;
+        }
+
+        const payload = {
+          nif,
+          nombre,
+          descripcion: descripcion || null
+        };
+
+        setLoading(true);
+        try {
+          if (estado.selectedId) {
+            await rcg.http.put(API_URL, payload, { query: { id: estado.selectedId } });
+            setStatus('Usuario actualizado');
+          } else {
+            await rcg.http.post(API_URL, payload);
+            setStatus('Usuario creado');
+          }
+          await recargarUsuarios();
+        } catch (error) {
+          console.error(error);
+          setStatus(error?.message || 'Error guardando usuario', 'error');
+        } finally {
+          estado.loading = false;
+        }
+      }
+
+      async function eliminarUsuario() {
+        if (!estado.selectedId) {
+          setStatus('Selecciona un usuario para eliminar', 'error');
+          return;
+        }
+
+        const user = selectedUser.value;
+        const accepted = confirm(`¿Eliminar al usuario #${user?.id} (${user?.nombre || ''})?`);
+        if (!accepted) return;
+
+        setLoading(true);
+        try {
+          await rcg.http.delete(API_URL, { query: { id: estado.selectedId } });
+          estado.selectedId = null;
+          clearForm();
+          await recargarUsuarios();
+          setStatus('Usuario eliminado');
+        } catch (error) {
+          console.error(error);
+          setStatus(error?.message || 'Error eliminando usuario', 'error');
+        } finally {
+          estado.loading = false;
+        }
+      }
+
+      async function alternarEstado() {
+        if (!estado.selectedId) {
+          setStatus('Selecciona un usuario para activar/desactivar', 'error');
+          return;
+        }
+
+        const intent = isSelectedInactive.value ? 'activate' : 'deactivate';
+
+        setLoading(true);
+        try {
+          await rcg.http.post(API_URL, { intent, id: estado.selectedId });
+          await recargarUsuarios();
+          setStatus(intent === 'activate' ? 'Usuario activado' : 'Usuario desactivado');
+        } catch (error) {
+          console.error(error);
+          setStatus(error?.message || 'Error cambiando estado', 'error');
+        } finally {
+          estado.loading = false;
+        }
+      }
+
+      rcg.onReady(() => {
+        rcg.hydrate(document, {
+          estado,
+          isSelectedInactive,
+          callAI,
+          sendPromptToAI,
+          recargarUsuarios,
+          seleccionarUsuario,
+          actualizarCampo,
+          nuevoUsuario,
+          guardarUsuario,
+          eliminarUsuario,
+          alternarEstado
+        });
+        recargarUsuarios();
+      });
+
+    })();
+  </script>
+</body>
+
+</html>

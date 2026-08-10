@@ -534,7 +534,7 @@ const rcg = (function () {
         enumerable: true,
         get() {
           const val = resolve(path, context)
-          return val ?? path;
+          return val === undefined ? path : val;
         }
       });
     }
@@ -664,29 +664,99 @@ const rcg = (function () {
       .replaceAll("'", '&#39;');
   }
 
-  const http = {
+  /**
+   * Núcleo privado para peticiones HTTP
+   */
+  async function sendRequest(url, options = {}) {
+    if (!url) throw new Error('Se requiere una URL.');
 
-    async getHtml(url, options = {}) {
-      if (!url) return 'Se requiere una URL.';
-      const {
-        signal,
-        headers = {},
-        credentials = 'same-origin'
-      } = options;
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-          'Accept': 'text/html',
-          ...headers
-        },
-        credentials,
-        signal
+    const {
+      method = 'GET',
+      body,
+      query,
+      headers = {},
+      credentials = 'same-origin',
+      signal,
+      parse = 'auto'
+    } = options;
+
+    // 1. Construcción de URL y Query Parameters
+    const targetUrl = new URL(url, location.origin);
+    if (query && typeof query === 'object') {
+      Object.entries(query).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          targetUrl.searchParams.set(key, value);
+        }
       });
-      if (!response.ok) throw new Error(`Error HTTP ${response.status}: ${response.statusText} ${url}`);
-      return response.text();
     }
 
+    // 2. Normalización de Body y Content-Type
+    const reqHeaders = {
+      'X-Requested-With': 'XMLHttpRequest',
+      'Accept': 'application/json, text/plain, */*',
+      ...headers
+    };
+
+    let reqBody = body;
+    const isPlainObject = body && typeof body === 'object' &&
+      !(body instanceof FormData) &&
+      !(body instanceof URLSearchParams) &&
+      !(body instanceof Blob);
+
+    if (isPlainObject) {
+      reqHeaders['Content-Type'] = reqHeaders['Content-Type'] || 'application/json';
+      reqBody = JSON.stringify(body);
+    }
+
+    // 3. Ejecución de fetch
+    const response = await fetch(targetUrl.toString(), {
+      method,
+      headers: reqHeaders,
+      credentials,
+      signal,
+      body: reqBody
+    });
+
+    // 4. Estrategia de parseo
+    const contentType = response.headers.get('content-type') || '';
+    const isJson = contentType.includes('application/json');
+    
+    let payload = null;
+    if (parse === 'text') {
+      payload = await response.text();
+    } else if (parse === 'json') {
+      payload = await response.json();
+    } else {
+      payload = isJson ? await response.json().catch(() => null) : await response.text();
+    }
+
+    // 5. Tratamiento de Errores con Payload enriquecido
+    if (!response.ok) {
+      const message = payload?.error || payload?.message || `Error HTTP ${response.status}: ${response.statusText}`;
+      const error = new Error(message);
+      error.status = response.status;
+      error.payload = payload;
+      error.response = response;
+      throw error;
+    }
+
+    return payload;
+  }
+
+  // API pública del cliente HTTP
+  const http = {
+    request: (url, options) => sendRequest(url, options),
+    get: (url, options = {}) => sendRequest(url, { ...options, method: 'GET' }),
+    post: (url, body, options = {}) => sendRequest(url, { ...options, method: 'POST', body }),
+    put: (url, body, options = {}) => sendRequest(url, { ...options, method: 'PUT', body }),
+    patch: (url, body, options = {}) => sendRequest(url, { ...options, method: 'PATCH', body }),
+    delete: (url, options = {}) => sendRequest(url, { ...options, method: 'DELETE' }),
+    getHtml: (url, options = {}) => sendRequest(url, {
+      ...options,
+      method: 'GET',
+      headers: { 'Accept': 'text/html', ...(options.headers || {}) },
+      parse: 'text'
+    })
   };
 
   return {
