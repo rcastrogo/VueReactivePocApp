@@ -1,16 +1,15 @@
 // @ts-nocheck
-async function invokeGeminiModel(payload) {
-  const url = '/api/gemini';
+async function invokeOpenrouterModel(payload) {
+  const url = '/api/openrouter';
   const data = await rcg.http.post(url, payload, {
     headers: { 'Content-Type': 'application/json' }
   });
   return data;
 }
-
 rcg.ai = rcg.ai || {};
-rcg.ai.gemini = {
+rcg.ai.openrouter = {
   /**
-   * Genera una tarjeta HTML formateada con Tailwind llamando directamente a Gemini.
+  * Genera una tarjeta HTML formateada con Tailwind usando OpenRouter con payload estilo OpenAI.
    * @param {Object} user Objeto con los datos del usuario.
    * @param {Object} [options] Opciones adicionales (ej: { apiKey: '...' })
    * @returns {Promise<{ html: string }>}
@@ -40,19 +39,17 @@ rcg.ai.gemini = {
     `;
     
     const payload = {
-      systemInstruction: { parts: [{ text: systemText }] },   
-      contents: [{ parts: [{ text: prompt }] }],    
-      generationConfig: {
-        temperature: 0.2,               // Baja para que el HTML sea consistente
-        maxOutputTokens: 1000,          // Limita la longitud máxima de la respuesta (ahorra tokens)
-        topP: 0.95,                     // Controla la diversidad del vocabulario
-        topK: 40,                       // Limita el número de opciones de palabras que considera
-        responseMimeType: "text/plain"  // Opcional: Gemini devuelve text/plain por defecto
-      }
+      messages: [
+        { role: 'system', content: systemText },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.2,
+      max_tokens: 1000,
+      top_p: 0.95
     };
 
     try {
-      const data = await invokeGeminiModel(payload) ?? '';
+      const data = await invokeOpenrouterModel(payload) ?? '';
       const html = data
         .replace(/^```html\s*/i, '')
         .replace(/^```\s*/i, '')
@@ -60,46 +57,48 @@ rcg.ai.gemini = {
         .trim();
       return { html };
     } catch (error) {
-      console.error('rcg.ai.gemini.generateProfile Error:', error);
+      console.error('rcg.ai.openrouter.generateProfile Error:', error);
       return { error: `Error procesando la petición: ${error.message}` };
     }
   },
   handleUserPrompt: async (userText, users, options = {}) => {
 
     const responseSchema = {
-      type: "OBJECT",
+      type: 'object',
+      additionalProperties: false,
       properties: {
         action: {
-          type: "STRING",
+          type: 'string',
           description: "Acción en minúsculas: 'borrar', 'modificar', 'filtrar', 'exportar', 'restaurar', 'ordenar'. Si no hay acción clara, 'ninguna'."
         },
         userIds: {
-          type: "ARRAY",
-          items: { type: "INTEGER" },
+          type: 'array',
+          items: { type: 'integer' },
           description: "IDs de usuarios afectados por 'borrar', 'filtrar' o 'exportar'. Vacío si no aplica."
         },
         usersData: {
-          type: "ARRAY",
+          type: 'array',
           description: "Objetos enteros modificados. Vacío si la acción no es 'modificar'.",
-          items: { 
-            type: "OBJECT",
+          items: {
+            type: 'object',
+            additionalProperties: false,
             properties: {
-              id: { type: "INTEGER" },
-              nombre: { type: "STRING" },
-              nif: { type: "STRING" },
-              descripcion: { type: "STRING" },
-              fecha_de_alta: { type: "STRING", nullable: true },
-              fecha_de_baja: { type: "STRING", nullable: true }
+              id: { type: 'integer' },
+              nombre: { type: 'string' },
+              nif: { type: 'string' },
+              descripcion: { type: ['string', 'null'] },
+              fecha_de_alta: { type: ['string', 'null'] },
+              fecha_de_baja: { type: ['string', 'null'] }
             },
-            required: ["id", "nombre", "nif", "descripcion"]
+            required: ['id', 'nombre', 'nif', 'descripcion', 'fecha_de_alta', 'fecha_de_baja']
           }
         },
         texto: {
-          type: "STRING",
+          type: 'string',
           description: "Explicación breve y amigable de la operación realizada o respuesta al usuario."
         }
       },
-      required: ["action", "texto", "usersData", "userIds"]
+      required: ['action', 'texto', 'usersData', 'userIds']
     };
 
     const systemText = `
@@ -121,21 +120,27 @@ rcg.ai.gemini = {
     `;
     
     const payload = {
-      systemInstruction: { parts: [{ text: systemText }] },   
-      contents: [{ parts: [{ text: prompt }] }],    
-      generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 4000,
-        responseMimeType: "application/json",
-        responseSchema
+      messages: [
+        { role: 'system', content: systemText },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.1,
+      max_tokens: 4000,
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'user_action_response',
+          strict: true,
+          schema: responseSchema
+        }
       }
     };
 
     try {
-      const data = await invokeGeminiModel(payload) ?? '{}';
+      const data = await invokeOpenrouterModel(payload) ?? '{}';
       return JSON.parse(data);
     } catch (error) {
-      console.error('rcg.ai.gemini.handleUserPrompt Error:', error);
+      console.error('rcg.ai.openrouter.handleUserPrompt Error:', error);
       return { error: `Error procesando la petición: ${error.message}` };
     }
   }
