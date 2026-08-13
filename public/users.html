@@ -26,12 +26,14 @@
   </div>
 
   <main class="mx-auto max-w-6xl space-y-6">
-    <section class="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-xl shadow-slate-300/30 backdrop-blur-sm sm:p-8">
+    <section
+      class="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-xl shadow-slate-300/30 backdrop-blur-sm sm:p-8">
       <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div class="space-y-3">
           <p class="text-xs font-semibold tracking-[0.22em] text-slate-500">REACTIVE UI LAB</p>
           <h1 class="text-3xl font-bold leading-tight text-slate-900 sm:text-5xl">CRUD API de Usuarios con IA ✨</h1>
-          <p class="text-sm text-slate-600 sm:text-base">Panel para listar, crear, editar, activar/desactivar y eliminar usuarios usando <strong>/api/users</strong>.</p>
+          <p class="text-sm text-slate-600 sm:text-base">Panel para listar, crear, editar, activar/desactivar y eliminar
+            usuarios usando <strong>/api/users</strong>.</p>
         </div>
         <div class="rounded-2xl border border-slate-200 bg-slate-900 p-4 text-slate-100 shadow-lg">
           <p class="text-xs text-center tracking-widest text-slate-400">ESTADO</p>
@@ -42,7 +44,8 @@
               text-rose-300 ? estado.error;
               estado.status" class="mt-2 text-center text-sm font-semibold">
           </p>
-          <button on-click="recargarUsuarios" class="tool-bar-button mt-4 w-full justify-center border-slate-700 bg-slate-800 text-white hover:bg-slate-700">
+          <button on-click="recargarUsuarios"
+            class="tool-bar-button mt-4 w-full justify-center border-slate-700 bg-slate-800 text-white hover:bg-slate-700">
             Recargar usuarios
           </button>
         </div>
@@ -69,29 +72,61 @@
             <span data-bind="estado.users.length"></span> usuarios
           </div>
         </header>
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-end gap-2 p-2 rounded-xl border border-slate-200 bg-white">
-          <textarea 
-            on-input="actualizarCampo:prompt"
-            on-keydown="handlePromptKeyDown"
+
+        <div class="border-t my-2 border-slate-300"></div>
+        <div
+          class=" flex flex-col sm:flex-row items-stretch sm:items-end gap-2 p-2 rounded-xl border border-slate-200 bg-white">
+          <textarea on-input="actualizarCampo:prompt" on-keydown="handlePromptKeyDown"
             data-bind="value:estado.form.prompt"
-            class="w-full flex-1 resize-none border-0 bg-transparent p-2 text-sm text-slate-700 focus:outline-none focus:ring-0" 
-            rows="2" 
-            placeholder="Escribe tu petición aquí..."></textarea>
+            class="w-full flex-1 resize-none border-0 bg-transparent p-2 text-sm text-slate-700 focus:outline-none focus:ring-0"
+            rows="2" placeholder="Escribe tu petición aquí..."></textarea>
           <div class="flex flex-wrap gap-2">
-            <button type="button" on-click="sendPromptToAI" class="tool-bar-button border-slate-200 self-end sm:self-auto shrink-0">✨</button>
-            <button type="button" on-click="reloadUsers" class="tool-bar-button border-slate-200 self-end sm:self-auto shrink-0">⟳</button>
+            <button type="button" on-click="sendPromptToAI"
+              class="tool-bar-button border-slate-200 self-end sm:self-auto shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6">
+                <path
+                  d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" />
+                <path d="M20 2v4" />
+                <path d="M22 4h-4" />
+                <circle cx="4" cy="20" r="2" />
+              </svg>
+            </button>
+            <button type="button" on-click="sendPromptToAgent"
+              class="tool-bar-button border-slate-200 self-end sm:self-auto shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6">
+                <path d="M12 6V2H8" />
+                <path d="M15 11v2" />
+                <path d="M2 12h2" />
+                <path d="M20 12h2" />
+                <path
+                  d="M20 16a2 2 0 0 1-2 2H8.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 4 20.286V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z" />
+                <path d="M9 11v2" />
+              </svg>
+            </button>
+            <button type="button" on-click="reloadUsers"
+              class="tool-bar-button border-slate-200 self-end sm:self-auto shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+              </svg>
+            </button>
           </div>
         </div>
         <div class="mt-2 bg-white">
-          <div 
-            data-if="estado.form.ai_response" 
-            class="text-sm rounded-xl border border-slate-200 p-2 max-h-32 overflow-y-auto" 
-            data-bind="html:estado.form.ai_response"></div>
-          <div data-if="estado.loading_ai_response">
+          <div data-if="estado.form.ai_response" data-bind="
+              html:estado.form.ai_response;
+              class:text-sm rounded-xl border border-slate-200 p-2 overflow-y-auto
+              max-h-32 ? !estado.form.agent_mode
+              "></div>
+          <div data-if="estado.loading_ai_response" class="mt-2">
             <div data-component="app-spinner" [size]="sm">
             </div>
           </div>
         </div>
+        <div class="border-t mt-2 border-slate-300"></div>
         <div class="overflow-auto rounded-xl border border-slate-200 mt-2">
           <table class="min-w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50 text-slate-600">
@@ -105,22 +140,19 @@
                 <th class="px-3 py-2 text-left font-semibold">Estado</th>
               </tr>
             </thead>
-            <tbody 
-              class="divide-y divide-slate-100 bg-white" 
-              data-bind="class: 
+            <tbody class="divide-y divide-slate-100 bg-white" data-bind="class: 
                 divide-y divide-slate-100 bg-white
-                hidden ? estado.loading"
-              data-each="user in estado.users">
+                hidden ? estado.loading" data-each="user in estado.users">
               <tr data-bind="class:
                     cursor-pointer transition-colors
                     bg-sky-50 ring-1 ring-sky-300 ? user.id == estado.selectedId
-                    hover:bg-slate-50 ? user.id != estado.selectedId"
-                on-click="seleccionarUsuario:$user.id">
+                    hover:bg-slate-50 ? user.id != estado.selectedId" on-click="seleccionarUsuario:$user.id">
                 <td class="px-3 py-2 font-semibold text-slate-700" data-bind="user.id"></td>
                 <td class="px-3 py-2 text-slate-700" data-bind="user.nif"></td>
                 <td class="px-3 py-2 text-slate-900" data-bind="user.nombre"></td>
                 <td class="px-3 py-2 text-slate-900" data-bind="user.descripcion"></td>
-                <td class="px-3 py-2 text-slate-600 text-center" data-bind="html:user.fecha_de_alta | formatDate | asDateTime | fallback:-"></td>
+                <td class="px-3 py-2 text-slate-600 text-center"
+                  data-bind="html:user.fecha_de_alta | formatDate | asDateTime | fallback:-"></td>
                 <td class="px-3 py-2 text-slate-600 text-center">
                   <div data-component="app-date" [value]="user.fecha_de_baja" [fallback]="-"></div>
                 </td>
@@ -145,40 +177,41 @@
         <header class="mb-4 border-b pb-2">
           <h2 data-bind="estado.aiProvider | upper" class="text-xl font-bold text-slate-900 border-b mb-2"></h2>
           <div class="flex flex-wrap gap-2">
-            <button type="button" on-click="setAIProvider:gemini" 
-              data-bind="class:
+            <button type="button" on-click="setAIProvider:gemini" data-bind="class:
                 tool-bar-button border-slate-200
                 bg-gray-300 ? estado.aiProvider === 'gemini'">Gemini</button>
-            <button type="button" on-click="setAIProvider:openrouter" 
-              data-bind="class:
+            <button type="button" on-click="setAIProvider:openrouter" data-bind="class:
                 tool-bar-button border-slate-200
                 bg-gray-300 ? estado.aiProvider === 'openrouter'">OpenRouter</button>
-            <button type="button" 
-              on-click="setAIProvider:groq" 
-              data-bind="class:
+            <button type="button" on-click="setAIProvider:groq" data-bind="class:
                 tool-bar-button border-slate-200
                 bg-gray-300 ? estado.aiProvider === 'groq'">Groq</button>
           </div>
 
           <div class="flex flex-wrap gap-2 p-2" data-if="isGroq">
             <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-              <input type="radio" name="groqModel" value="openai/gpt-oss-20b" on-change="setGroqModel:openai/gpt-oss-20b" checked class="accent-slate-800" />
+              <input type="radio" name="groqModel" value="openai/gpt-oss-20b"
+                on-change="setGroqModel:openai/gpt-oss-20b" checked class="accent-slate-800" />
               GPT OSS 20B
             </label>
             <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-              <input type="radio" name="groqModel" value="openai/gpt-oss-120b" on-change="setGroqModel:openai/gpt-oss-120b" class="accent-slate-800" />
+              <input type="radio" name="groqModel" value="openai/gpt-oss-120b"
+                on-change="setGroqModel:openai/gpt-oss-120b" class="accent-slate-800" />
               GPT OSS 120B
             </label>
             <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-              <input type="radio" name="groqModel" value="llama-3.1-8b-instant" on-change="setGroqModel:llama-3.1-8b-instant" class="accent-slate-800" />
+              <input type="radio" name="groqModel" value="llama-3.1-8b-instant"
+                on-change="setGroqModel:llama-3.1-8b-instant" class="accent-slate-800" />
               Llama 3.1 8B
             </label>
             <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-              <input type="radio" name="groqModel" value="llama-3.3-70b-versatile" on-change="setGroqModel:llama-3.3-70b-versatile" class="accent-slate-800" />
+              <input type="radio" name="groqModel" value="llama-3.3-70b-versatile"
+                on-change="setGroqModel:llama-3.3-70b-versatile" class="accent-slate-800" />
               Llama 3.3 70B
             </label>
             <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-              <input type="radio" name="groqModel" value="qwen/qwen3.6-27b" on-change="setGroqModel:qwen/qwen3.6-27b" class="accent-slate-800" />
+              <input type="radio" name="groqModel" value="qwen/qwen3.6-27b" on-change="setGroqModel:qwen/qwen3.6-27b"
+                class="accent-slate-800" />
               Qwen 3.6 27B
             </label>
           </div>
@@ -213,9 +246,7 @@
 
           <div class="grid grid-cols-1 gap-3">
             <label class="text-xs font-semibold text-slate-600">Descripción
-              <input name="descripcion" 
-                data-bind="value:estado.form.descripcion"
-                on-input="actualizarCampo:descripcion" 
+              <input name="descripcion" data-bind="value:estado.form.descripcion" on-input="actualizarCampo:descripcion"
                 class="app-input mt-1 w-full rounded-lg border border-slate-200 p-2">
             </label>
           </div>
@@ -231,20 +262,15 @@
             </label>
           </div>
 
-          <div class="flex flex-wrap gap-2 pt-2">            
+          <div class="flex flex-wrap gap-2 pt-2">
             <button type="button" on-click="callAI" class="tool-bar-button border-slate-200">✨</button>
             <button type="button" on-click="nuevoUsuario" class="tool-bar-button border-slate-200">Nuevo</button>
             <button type="submit" class="tool-bar-button border-slate-200">Guardar</button>
-            <button type="button" 
-              on-click="eliminarUsuario" 
-              data-bind="attr.disabled:estado.selectedId | not"
+            <button type="button" on-click="eliminarUsuario" data-bind="attr.disabled:estado.selectedId | not"
               class="tool-bar-button border-slate-200">Eliminar</button>
-            <button type="button" 
-              on-click="alternarEstado"
-              data-bind="
+            <button type="button" on-click="alternarEstado" data-bind="
                 attr.disabled:estado.selectedId | not;
-                isSelectedInactive | if:Activar:Desactivar"
-              class="tool-bar-button border-slate-200"></button>
+                isSelectedInactive | if:Activar:Desactivar" class="tool-bar-button border-slate-200"></button>
           </div>
 
           <div class="m-2" data-bind="html:estado.form.ai_generated_content">
@@ -280,16 +306,16 @@
       const APP_DATE = 'app-date';
 
       const AppDate = rcg.defineComponent(APP_DATE, (ctx, emit, props) => {
-        
+
         const formattedParts = computed(() => {
           if (!props.value) return null;
           const str = rcg.formatDate(props.value);
-          if(!str) return null;
+          if (!str) return null;
           const [datePart, timePart] = str.split(' ');
           return { date: datePart, time: timePart };
         });
 
-        const isValid = computed(() => formattedParts.value !== null);    
+        const isValid = computed(() => formattedParts.value !== null);
         const dateText = computed(() => isValid.value ? formattedParts.value.date : '');
         const timeText = computed(() => isValid.value ? formattedParts.value.time : '');
         const fallbackText = computed(() => props.fallback ?? '-');
@@ -304,13 +330,14 @@
             <span data-if="!isValid" data-bind="fallbackText" class="text-slate-600"></span>
           </div>
         `;
-        return {template, handlers, ctx: local_ctx
+        return {
+          template, handlers, ctx: local_ctx
         };
       });
       rcg.registerComponent(APP_DATE, AppDate);
       rcg.registerPipe('formatDate', (val, args) => rcg.formatDate(val));
       rcg.registerPipe('asDateTime', (val, args) => {
-        if(!val) return '';
+        if (!val) return '';
         const [date, time] = String(val).split(' ');
         return `<span class="text-slate-600">${date}</span> <span class="text-slate-400">${time}</span>`;
       });
@@ -321,6 +348,7 @@
 
       const { reactive, computed } = VueReactivity;
       const API_URL = '/api/users';
+      const API_DEV_USERS_URL = ''; //'/js/users.json';
 
       const estado = reactive({
         loading: false,
@@ -341,7 +369,8 @@
           fecha_de_baja: '',
           prompt: '',
           ai_generated_content: '',
-          ai_response: ''
+          ai_response: '',
+          agent_mode: false
         }
       });
 
@@ -390,17 +419,17 @@
         estado.form.ai_generated_content = '<div class="mt-4" data-component="app-spinner" [size]="md" [label]="Generando contenido..."></div>';
         queueMicrotask(() => {
           const el = document.querySelector('[data-component=app-spinner]');
-          if(el) rcg.hydrate(el, {});
+          if (el) rcg.hydrate(el, {});
         });
       }
 
       async function callAI() {
-        if(!selectedUser?.value) return;
+        if (!selectedUser?.value) return;
         waitingForAIResponse();
         try {
           const provider = estado.aiProvider || 'gemini';
-          const model = estado.aiProvider === 'groq' ?  estado.groqModel || '' : '';
-          const { html } = await rcg.ai[provider].generateProfile(selectedUser.value, { model} );       
+          const model = estado.aiProvider === 'groq' ? estado.groqModel || '' : '';
+          const { html } = await rcg.ai[provider].generateProfile(selectedUser.value, { model });
           estado.form.ai_generated_content = html;
         } catch (error) {
           console.error('No se pudo generar el perfil:', error);
@@ -408,19 +437,44 @@
       }
 
       async function sendPromptToAI() {
-        if(!estado.form.prompt?.trim()) return;
-        if(estado.users.length === 0) return;
+        if (!estado.form.prompt?.trim()) return;
+        if (estado.users.length === 0) return;
         try {
           estado.form.ai_response = '';
           estado.loading_ai_response = true;
+          estado.form.agent_mode = true;
           const provider = estado.aiProvider || 'gemini';
-          const model = estado.aiProvider === 'groq' ?  estado.groqModel || '' : '';
-          const result = await rcg.ai[provider].handleUserPrompt(estado.form.prompt, estado.users, {model});
-          console.log('AI Response:', result);          
+          const model = estado.aiProvider === 'groq' ? estado.groqModel || '' : '';
+          const result = await rcg.ai[provider].handleUserPrompt(estado.form.prompt, estado.users, { model });
+          console.log('AI Response:', result);
           handleAIResponse(result);
         } catch (error) {
           console.error('No se pudo atender la petición:', error);
-           estado.form.ai_response = error;
+          estado.form.ai_response = error;
+        }
+        estado.loading_ai_response = false;
+      }
+
+      async function sendPromptToAgent() {
+        if (!estado.form.prompt?.trim()) return;
+        try {
+          estado.form.ai_response = '';
+          estado.loading_ai_response = true;
+          estado.form.agent_mode = true;
+          const result = await rcg.ai.gemini.handleWithAgent(
+            estado.form.prompt,
+            estado.users,
+            {
+              log: (value) => estado.form.ai_response += String(value)
+            }
+          );
+          const { action, userIds, usersData, text, steps } = result || {};
+          if (action && userIds && userIds.length) {
+            estado.users = estado.users.filter(u => userIds.includes(Number(u.id)));
+          }
+        } catch (error) {
+          console.error('No se pudo atender la petición del agente:', error);
+          estado.form.ai_response = error;
         }
         estado.loading_ai_response = false;
       }
@@ -433,16 +487,15 @@
         }
       }
 
-      function setAIProvider(eventData){
+      function setAIProvider(eventData) {
         const [name] = eventData.arg;
         estado.aiProvider = name;
       }
 
-      function setGroqModel(eventData){
+      function setGroqModel(eventData) {
         const [model] = eventData.arg;
         estado.groqModel = model;
       }
-      
 
       handleAIResponse = (result) => {
         if (!result) {
@@ -460,6 +513,9 @@
         const ids = (result.userIds || []).map(id => Number(id));
         switch (result.action) {
           case 'modificar': {
+            if (ids.length > 0) {
+              estado.users = estado.users.filter(u => ids.includes(Number(u.id)));
+            }
             if (Array.isArray(result.usersData) && result.usersData.length > 0) {
               result.usersData.forEach(userMod => {
                 const modId = Number(userMod.id);
@@ -531,8 +587,9 @@
 
       async function recargarUsuarios() {
         setLoading(true);
+        estado.form.ai_response = '';
         try {
-          const users = await rcg.http.get(API_URL);
+          const users = await rcg.http.get(API_DEV_USERS_URL || API_URL);
           estado.users = Array.isArray(users) ? users : [];
           estado.users_t0 = JSON.parse(JSON.stringify(estado.users));
           if (!selectedUser.value) {
@@ -552,6 +609,7 @@
       }
 
       function reloadUsers() {
+        estado.form.ai_response = '';
         estado.users = JSON.parse(JSON.stringify(estado.users_t0));
       }
 
@@ -663,6 +721,7 @@
           isSelectedInactive,
           callAI,
           sendPromptToAI,
+          sendPromptToAgent,
           setAIProvider,
           setGroqModel,
           isGroq,

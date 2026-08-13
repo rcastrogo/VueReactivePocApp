@@ -138,5 +138,389 @@ rcg.ai.gemini = {
       console.error('rcg.ai.gemini.handleUserPrompt Error:', error);
       return { error: `Error procesando la petición: ${error.message}` };
     }
+  },
+  // TODO: Gemini soporta Function Calling nativo mediante la declaración de tools.
+  handleWithAgent: async (userText, users, options = {}) => {
+
+    const maxIterations = Number(options?.maxIterations || 8);
+    const safeUsers = Array.isArray(users) ? users : [];
+    const clone = (value) => JSON.parse(JSON.stringify(value));
+    const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const LOG_ICONS = {
+      agent: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6"><path d="M12 6V2H8"/><path d="M15 11v2"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M20 16a2 2 0 0 1-2 2H8.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 4 20.286V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"/><path d="M9 11v2"/></svg>',
+      info: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square-text-icon lucide-message-square-text"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/><path d="M7 11h10"/><path d="M7 15h6"/><path d="M7 7h8"/></svg>',
+      debug: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings-icon lucide-settings"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>',
+      error: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-triangle-alert-icon lucide-triangle-alert"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>'
+    };
+
+    const escapeHtml = (text) => 
+      String(text ?? '').replace(/[&<>"']/g, (m) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+
+    const renderJson = (data) => `<pre class="overflow-x-auto mb-1 rounded-lg bg-yellow-200/40 p-2 text-xs">${escapeHtml(JSON.stringify(data, null, 2))}</pre>`;
+
+    // 3. Función principal
+    const log = (value, mode = 'info') => {
+      const valueType = typeof value;
+      let html = '';
+      // ============================================================================
+      // CASO 1: Strings (Logs simples)
+      // ============================================================================
+      if (valueType === 'string') {
+        const isError = mode === 'error';
+        const containerClasses = isError 
+          ? 'text-red-600 font-medium bg-red-50 border border-red-200 rounded p-0.5' 
+          : 'text-slate-700';
+        html = `
+          <div class="text-xs ${containerClasses} mb-0.5 flex items-center gap-1">
+            <span class="inline-flex items-center shrink-0">${LOG_ICONS[mode] || LOG_ICONS.info}</span>
+            <span class="inline-block">${escapeHtml(value)}</span>
+          </div>
+        `;
+      }
+      // ============================================================================
+      // CASO 2: Objetos y otros (Logs complejos)
+      // ============================================================================
+      else {
+        let title = '';
+        let detail = '';
+
+        const isComplexObject = value && valueType === 'object';
+        
+        if (isComplexObject) {
+          const isFunctionCall = value.type === 'function_call';
+          const isModelResult = ['action', 'texto', 'userIds', 'usersData'].some(key => key in value);
+
+          if (isFunctionCall) {
+            title = `${LOG_ICONS.agent} ${value.name || 'Sin nombre'}`;
+            detail = `<p>${escapeHtml(value.reason || 'Sin razón indicada')}</p>${renderJson(value.arguments || {})}`;
+          } 
+          else if (isModelResult) {
+            title = `${LOG_ICONS.agent} Resultado final del modelo`;
+            detail = `<p>${escapeHtml(value.texto || '')}</p>${renderJson(value)}`;
+          } 
+          else {
+            detail = renderJson(value);
+          }
+        } else {
+          detail = escapeHtml(String(value));
+        }
+
+        html = `
+          <div class="mt-2">
+            ${title ? `<div class="flex items-center justify-between"><strong class="text-sm flex items-center gap-1">${title}</strong></div>` : ''}
+            <div class="text-sm leading-6">${detail}</div>
+          </div>
+        `;
+      }
+
+      options?.log?.(html);
+    };
+
+    const normalizeFinalResponse = (value) => {
+      const base = value && typeof value === 'object' ? value : {};
+      return {
+        action: typeof base.action === 'string' ? base.action : 'ninguna',
+        userIds: Array.isArray(base.userIds)
+          ? base.userIds.map((id) => Number(id)).filter((id) => Number.isFinite(id))
+          : [],
+        usersData: Array.isArray(base.usersData) ? base.usersData : [],
+        texto: typeof base.texto === 'string'
+          ? base.texto
+          : 'No se pudo completar la acción con el agente.',
+        steps: Array.isArray(base.steps) ? base.steps : []
+      };
+    };
+
+    const parseJsonFromModel = (rawText) => {
+      const text = String(rawText || '').trim();
+      if (!text) return null;
+
+      const clean = text
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/\s*```$/, '')
+        .trim();
+
+      try {
+        return JSON.parse(clean);
+      } catch (_) {
+        const first = clean.indexOf('{');
+        const last = clean.lastIndexOf('}');
+        if (first === -1 || last === -1 || last <= first) return null;
+        try {
+          return JSON.parse(clean.slice(first, last + 1));
+        } catch (__)
+        {
+          return null;
+        }
+      }
+    };
+
+    const applyUserPatch = (sourceUser, patch) => {
+      if (!sourceUser || !patch || typeof patch !== 'object') return sourceUser || null;
+      return {
+        ...sourceUser,
+        ...patch,
+        id: sourceUser.id,
+        fecha_de_alta: patch.fecha_de_alta !== undefined ? patch.fecha_de_alta : sourceUser.fecha_de_alta,
+        fecha_de_baja: patch.fecha_de_baja !== undefined ? patch.fecha_de_baja : sourceUser.fecha_de_baja
+      };
+    };
+
+    const toolContext = {
+      listUsers: () => {
+        return clone(safeUsers)
+      },
+      getUserById__: ({ id }) => {
+        const user = safeUsers.find((u) => Number(u.id) === Number(id)) || null;
+        return clone(user);
+      },
+      deleteUser: ({ id }) => {
+        return Math.random() < 0.5
+          ? { success: true, deletedId: Number(id) }
+          : { success: false, error: `No se pudo borrar el usuario con id ${id}` };
+      },
+      findUsers: ({ ids = [], nombreContains = '', nif = '', activo } = {}) => {
+        let result = safeUsers.slice();
+        if (Array.isArray(ids) && ids.length > 0) {
+          const wanted = new Set(ids.map((x) => Number(x)));
+          result = result.filter((u) => wanted.has(Number(u.id)));
+        }
+        if (nombreContains) {
+          const text = String(nombreContains).toLowerCase();
+          result = result.filter((u) => String(u.nombre || '').toLowerCase().includes(text));
+        }
+        if (nif) {
+          const text = String(nif).toLowerCase();
+          result = result.filter((u) => String(u.nif || '').toLowerCase() === text);
+        }
+        if (activo === true) result = result.filter((u) => !u.fecha_de_baja);
+        if (activo === false) result = result.filter((u) => Boolean(u.fecha_de_baja));
+        return clone(result);
+      },
+      sortUsers: ({ by = 'id', direction = 'asc' } = {}) => {
+        const dir = String(direction).toLowerCase() === 'desc' ? -1 : 1;
+        const sorted = safeUsers.slice().sort((a, b) => {
+          const va = a?.[by];
+          const vb = b?.[by];
+          if (va === vb) return 0;
+          if (va === undefined || va === null) return -1 * dir;
+          if (vb === undefined || vb === null) return 1 * dir;
+          return String(va).localeCompare(String(vb), 'es', { numeric: true }) * dir;
+        });
+        return clone(sorted);
+      },
+      buildModifiedUsers: ({ updates = [] } = {}) => {
+        if (!Array.isArray(updates)) return [];
+        const mapById = new Map(safeUsers.map((u) => [Number(u.id), u]));
+        const modified = updates
+          .map((item) => {
+            const id = Number(item?.id);
+            const original = mapById.get(id);
+            if (!original) return null;
+            const changes = item?.changes || {};
+            return applyUserPatch(original, changes);
+          })
+          .filter(Boolean);
+        return clone(modified);
+      }
+    };
+
+    const availableTools = [
+      {
+        name: 'listUsers',
+        description: 'Devuelve la lista completa de usuarios del contexto.'
+      },
+      {
+        name: 'getUserById',
+        description: 'Devuelve un usuario por id.',
+        args: { id: 'number' }
+      },
+      {
+        name: 'deleteUser',
+        description: 'Borra un usuario por id.',
+        args: { id: 'number' }
+      },
+      {
+        name: 'findUsers',
+        description: 'Filtra usuarios por ids, texto en nombre, nif exacto y estado activo/inactivo.',
+        args: { ids: 'number[]', nombreContains: 'string', nif: 'string', activo: 'boolean' }
+      },
+      {
+        name: 'sortUsers',
+        description: 'Ordena usuarios por propiedad y direccion. by: id|nombre|nif|fecha_de_alta|fecha_de_baja',
+        args: { by: 'string', direction: 'asc|desc' }
+      },
+      {
+        name: 'buildModifiedUsers',
+        description: 'Construye usuarios modificados a partir de updates=[{id,changes}] sin perder propiedades originales.',
+        args: { updates: '[{ id:number, changes:object }]' }
+      }
+    ];
+
+    const systemText = `
+      Eres un orquestador de acciones sobre usuarios y puedes pedir invocaciones de funciones.
+
+      OBJETIVO:
+      - Resolver peticiones multi-paso del usuario sobre la lista de usuarios.
+      - Cuando necesites datos intermedios, responde con una solicitud de función.
+      - Para responder al usuaio utiliza habla en primera persona: Necesito|Tengo que|Ahora voy a
+      - Con los resultados recibidos, sigue iterando hasta dar la respuesta final.
+
+      USUARIOS INICIALES (JSON):
+      ${JSON.stringify(safeUsers)}
+
+      HERRAMIENTAS DISPONIBLES:
+      ${JSON.stringify(availableTools)}
+
+      PROTOCOLO DE SALIDA (JSON estricto, sin texto extra):
+      1) Para pedir función:
+      {
+        "type": "function_call",
+        "name": "listUsers|getUserById|findUsers|sortUsers|buildModifiedUsers|deleteUser",
+        "arguments": { ... },
+        "reason": "opcional"
+      }
+
+      2) Para finalizar:
+      {
+        "type": "final",
+        "result": {
+          "action": "borrar|modificar|filtrar|exportar|restaurar|ordenar|ninguna",
+          "userIds": [1,2],
+          "usersData": [],
+          "texto": "explicacion breve",
+          "steps": ["paso 1", "paso 2"]
+        }
+      }
+
+      REGLAS:
+      - Si una acción (borrar, modificar, etc.) YA FUE EJECUTADA con éxito mediante una herramienta (ej: 'deleteUser'), la 'action' en el JSON final DEBE SER 'ninguna', ya que el agente ya la completó. El campo 'texto' informará de lo sucedido.
+      - No inventes usuarios ni IDs inexistentes.
+      - usersData debe contener objetos completos cuando action sea modificar.
+      - Si no aplica, userIds y usersData deben ser arrays vacios.
+      - Si ya tienes suficiente contexto, responde con type='final'.
+      REGLAS DE SINTAXIS CRÍTICAS:
+      - TODAS las propiedades/claves DEBEN ir entre comillas dobles obligatoriamente.
+      - INCORRECTO: { name: "findUsers" }
+      - CORRECTO:   { "name": "findUsers" }
+      - NUNCA omitas las comillas dobles en las claves como "name", "type", "arguments" o "reason".
+    `;
+
+    const history = [
+      {
+        role: 'user',
+        parts: [{
+          text: JSON.stringify({
+            phase: 'initial_request',
+            request: userText,
+            usersSnapshot: safeUsers
+          })
+        }]
+      }
+    ];
+
+    try {
+
+      log('Estableciendo conexión con el agente...', 'info');
+      log(`Iniciando orquestación del agente con ${maxIterations} iteraciones máximas`, 'debug');      
+      for (let i = 0; i < maxIterations; i += 1) {
+
+        const payload = {
+          systemInstruction: { parts: [{ text: systemText }] },
+          contents: history,
+          generationConfig: {
+            temperature: 0.1,
+            maxOutputTokens: 4000,
+            responseMimeType: 'application/json'
+          }
+        };
+
+        if (i > 0) await delay(1500);
+        const target = i === 0 ? 'petición' : 'resultado';
+        log(`Enviando ${target} al agente...`, 'info');    
+
+        const modelRaw = await invokeGeminiModel(payload);
+        const modelJson = parseJsonFromModel(modelRaw);
+        if (!modelJson) {
+          log('Respuesta no valida del modelo:', 'error');
+          return {
+            error: 'El modelo devolvio una respuesta no valida para el protocolo de agente.',
+            raw: modelRaw
+          };
+        }
+
+        if (modelJson.type === 'final') {
+          log(modelJson.result);
+          return normalizeFinalResponse(modelJson.result);
+        }
+
+        if (modelJson.type !== 'function_call') {
+          const maybeFinal = normalizeFinalResponse(modelJson);
+          if (maybeFinal.action || maybeFinal.texto) return maybeFinal;
+          log('Respuesta inesperada del modelo:', 'error');
+          return {
+            error: 'El modelo no devolvio ni function_call ni final.',
+            raw: modelJson
+          };
+        }
+
+        const toolName = modelJson.name;
+        const toolArgs = modelJson.arguments && typeof modelJson.arguments === 'object'
+          ? modelJson.arguments
+          : {};
+
+        log(modelJson);
+
+        const toolFn = toolContext[toolName];
+        let toolResult;
+        if (!toolFn) {
+          log(`Función no encontrada: ${toolName}`, 'error');
+          toolResult = { error: `Función no encontrada: ${toolName}` };
+        } else {
+          try {
+            log(`Invocando: ${toolName}`, 'debug');
+            toolResult = await toolFn(toolArgs);
+          } catch (toolError) {
+            toolResult = {
+              error: toolError?.message || `Error ejecutando ${toolName}`
+            };
+            log(`Error: ${toolResult.error}`, 'debug');
+          }
+        }
+
+        history.push({
+          role: 'model',
+          parts: [{ text: JSON.stringify(modelJson) }]
+        });
+        history.push({
+          role: 'user',
+          parts: [{
+            text: JSON.stringify({
+              phase: 'function_result',
+              functionName: toolName,
+              arguments: toolArgs,
+              result: toolResult
+            })
+          }]
+        });
+        log(`Iteración ${i + 1} completada`, 'debug');
+      }
+
+      log(`Se alcanzó el máximo de iteraciones (${maxIterations}) sin obtener respuesta final`, 'error');
+      return {
+        action: 'ninguna',
+        userIds: [],
+        usersData: [],
+        texto: `No se pudo completar la orquestacion en ${maxIterations} iteraciones.`
+      };
+    } catch (error) {
+      log(`Error en la orquestación del agente: ${error.message}`, 'error');
+      console.error('rcg.ai.gemini.handleWithAgent Error:', error);
+      return { error: `Error procesando la petición: ${error.message}` };
+    }
   }
 };
