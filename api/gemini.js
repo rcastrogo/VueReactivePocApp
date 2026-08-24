@@ -21,6 +21,11 @@ export async function invokeModel(payload) {
   if (!GEMINI_DEV_API_KEY) throw new Error('GEMINI_DEV_API_KEY no está definida en las variables de entorno.');
   if (!GEMINI_URL) throw new Error('GEMINI_URL no está definida en las variables de entorno.');
 
+  const isFunctionCall = payload?.functionCall === true;
+  if (isFunctionCall) {
+    delete payload.functionCall;
+  }
+
   const response = await fetch(`${GEMINI_URL}${GEMINI_DEV_API_KEY}`, {
     method: 'POST',
     headers: {
@@ -35,7 +40,7 @@ export async function invokeModel(payload) {
   }
 
   const data = await response.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  return isFunctionCall ? data : data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
 /**

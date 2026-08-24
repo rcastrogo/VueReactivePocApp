@@ -1,6 +1,6 @@
 // @ts-nocheck
-async function invokeGeminiModel(payload) {
-  const url = '/api/gemini';
+async function invokeAzureModel(payload) {
+  const url = '/api/azure'; // Ruta hacia tu Vercel Serverless Function
   const data = await rcg.http.post(url, payload, {
     headers: { 'Content-Type': 'application/json' }
   });
@@ -8,11 +8,11 @@ async function invokeGeminiModel(payload) {
 }
 
 rcg.ai = rcg.ai || {};
-rcg.ai.gemini = {
+rcg.ai.azure = {
   /**
-   * Genera una tarjeta HTML formateada con Tailwind llamando directamente a Gemini.
+   * Genera una tarjeta HTML formateada con Tailwind usando Azure AI / Phi-4.
    * @param {Object} user Objeto con los datos del usuario.
-   * @param {Object} [options] Opciones adicionales (ej: { apiKey: '...' })
+   * @param {Object} [options] Opciones adicionales.
    * @returns {Promise<{ html: string }>}
    */
   generateProfile: async (user, options = {}) => {
@@ -20,125 +20,151 @@ rcg.ai.gemini = {
     const isBaja = Boolean(user.fecha_de_baja);
     const estadoTexto = isBaja ? `Dado de baja (${user.fecha_de_baja})` : "Activo / En alta";
 
-    const systemText = 'Eres un desarrollador experto en HTML y Tailwind CSS. Tu salida es siempre código HTML puro.';
+    const systemText = 'Eres un desarrollador experto en HTML y Tailwind. Tu salida es siempre código HTML puro.';
 
     const prompt = `
-      Genera una tarjeta de perfil HTML visualmente atractiva, moderna y pulida para los datos del usuario.
+      Genera una tarjeta de perfil HTML para los datos del usuario.
 
       DATOS DE ENTRADA:
       - json: ${JSON.stringify(user)}
 
       INSTRUCCIONES DE DISEÑO:
       - Devuelve ÚNICAMENTE el fragmento HTML (sin markdown \`\`\`html, sin <html>, <head> o <body>).
-      - Usa clases puras de Tailwind CSS.
-      - El aspecto debe ser en blanco y grises y sobrío sin florituras. Asegurate de que se ve bien el texto y el fondo. Sin avatares ni imágenes externas.
+      - Usa clases puras de Tailwind.
+      - El aspecto debe ser en tonos azules y sobrio sin florituras. Asegúrate de que se ve bien el texto y el fondo. Sin avatares ni imágenes externas.
       - Muestra el nombre completo del usuario ("${user.nombre}").
       - Muestra el NIF del usuario ("${user.nif}").
       - Añade una sección para el estado del usuario ("${estadoTexto}").
-      - Añade una sección con un texto resumen del usuario teniendo en cuenta sus propiedades
+      - Añade una sección con un texto resumen del usuario teniendo en cuenta sus propiedades.
       - Añade una sección con el significado, breve, de su nombre y su origen etimológico (si es posible deducirlo).
     `;
-
+    
     const payload = {
-      systemInstruction: { parts: [{ text: systemText }] },
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.2,               // Baja para que el HTML sea consistente
-        maxOutputTokens: 1000,          // Limita la longitud máxima de la respuesta (ahorra tokens)
-        topP: 0.95,                     // Controla la diversidad del vocabulario
-        topK: 40,                       // Limita el número de opciones de palabras que considera
-        responseMimeType: "text/plain"  // Opcional: Gemini devuelve text/plain por defecto
-      }
+      model:'gpt-4.1-mini',
+      messages: [
+        { role: 'system', content: systemText },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.9,
+      max_tokens: 500,
+      top_p: 0.95
     };
 
     try {
-      const data = await invokeGeminiModel(payload) ?? '';
-      const html = data
+      const data = await invokeAzureModel(payload);
+      const html = (data.content ?? '')
         .replace(/^```html\s*/i, '')
         .replace(/^```\s*/i, '')
         .replace(/\s*```$/, '')
         .trim();
       return { html };
     } catch (error) {
-      console.error('rcg.ai.gemini.generateProfile Error:', error);
+      console.error('rcg.ai.azure.generateProfile Error:', error);
       return { error: `Error procesando la petición: ${error.message}` };
     }
   },
+  /**
+   * Procesa peticiones del usuario ejecutando lógica sobre la lista de usuarios y retornando JSON estructurado.
+   * @param {string} userText 
+   * @param {Array} users 
+   * @param {Object} [options] 
+   */
   handleUserPrompt: async (userText, users, options = {}) => {
-
-    const responseSchema = {
-      type: "OBJECT",
-      properties: {
-        action: {
-          type: "STRING",
-          description: "Acción en minúsculas: 'borrar', 'modificar', 'filtrar', 'exportar', 'restaurar', 'ordenar'. Si no hay acción clara, 'ninguna'."
-        },
-        userIds: {
-          type: "ARRAY",
-          items: { type: "INTEGER" },
-          description: "IDs de usuarios afectados por 'borrar', 'filtrar' o 'exportar'. Vacío si no aplica."
-        },
-        usersData: {
-          type: "ARRAY",
-          description: "Objetos enteros modificados. Vacío si la acción no es 'modificar'.",
-          items: {
-            type: "OBJECT",
-            properties: {
-              id: { type: "INTEGER" },
-              nombre: { type: "STRING" },
-              nif: { type: "STRING" },
-              descripcion: { type: "STRING" },
-              fecha_de_alta: { type: "STRING", nullable: true },
-              fecha_de_baja: { type: "STRING", nullable: true }
-            },
-            required: ["id", "nombre", "nif", "descripcion"]
-          }
-        },
-        texto: {
-          type: "STRING",
-          description: "Explicación breve y amigable de la operación realizada o respuesta al usuario."
-        }
-      },
-      required: ["action", "texto", "usersData", "userIds"]
-    };
 
     const systemText = `
       Eres el motor de lógica de una interfaz de usuarios. 
-      Analiza la petición y el array JSON de usuarios recibido:
-      - Si la acción es 'modificar': duplica el usuario original manteniendo TODAS sus propiedades intactas y actualiza SOLO la propiedad solicitada en 'usersData'.
-      - Si la acción es 'borrar', 'filtrar' o 'exportar': devuelve los IDs afectados en 'userIds'.
-      - Si la acción es 'restaurar' no es necesario devolver usuarios ni IDs, solo un mensaje en 'texto'.
-      - Para seleccionar todos los usuarios, incluye todos los IDs en 'userIds'.
-      - Mantiene las fechas en formato ISO 8601 o null.
-      - No inventes IDs ni usuarios inexistentes.
-      - Si el usuario piede ordenar los usuarios debes hacerlo y devolver los IDs en 'userIds' en el orden solicitado.
-      - Si el usuario pide un resumen, informe, agrupación devuélvelo en 'texto' formateado en HTML visualmene agradable. Debe tener un título en negrita.
-    `;
+      Debes procesar la petición del usuario y usar la función 'handleModelResponse' para devolver los resultados estructurados.
 
-    const prompt = `
-      DATOS: ${JSON.stringify(users)}
-      PETICIÓN: "${userText}"
+      REGLAS ESTRICTAS:
+      - 'userIds' y 'usersData' DEBEN SER SIEMPRE ARRAYS. Ejemplo: [3, 4, 5] o [].
+      - NUNCA devuelvas los IDs concatenados como un solo entero (ejemplo incorrecto: [345678]).
+      - Si la acción no modifica usuarios, 'usersData' debe ser [].
+      - Si la acción es 'restaurar': devuelve 'userIds' como [] y 'usersData' como [], solo un mensaje en 'texto'.
+      - Para seleccionar todos los usuarios, incluye todos los IDs en 'userIds'.
+      - Mantén las fechas en formato ISO 8601 o null.
+      - No inventes IDs ni usuarios inexistentes.
+      - Si el usuario pide ordenar los usuarios, devuélvelos en 'userIds' en el orden solicitado.
+      - Si el usuario pide un resumen, informe o agrupación, devuélvelo en 'texto' formateado en HTML visualmente agradable con un título en negrita.
     `;
 
     const payload = {
-      systemInstruction: { parts: [{ text: systemText }] },
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 4000,
-        responseMimeType: "application/json",
-        responseSchema
+      model: options?.model || 'gpt-4.1-mini',
+      messages: [
+        { role: 'system', content: systemText },
+        { role: 'user', content: `DATOS: ${JSON.stringify(users)}\nPETICIÓN: "${userText}"` }
+      ],
+      temperature: 0.1,
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "handleModelResponse",
+            description: "Devuelve la acción a realizar y los datos estructurados.",
+            parameters: {
+              type: "object",
+              properties: {
+                action: {
+                  type: "string",
+                  enum: ["borrar", "modificar", "filtrar", "exportar", "restaurar", "ordenar", "ninguna"],
+                  description: "La acción requerida según la petición."
+                },
+                userIds: {
+                  type: "array",
+                  description: "Array de enteros independientes con los IDs afectados. Vacío [] si no aplica.",
+                  items: {
+                    anyOf: [{ type: "integer" }, { type: "string" }] 
+                  }
+                },
+                usersData: {
+                  type: "array",
+                  description: "Array de objetos modificados. Vacío [] si no es modificar.",
+                  items: {
+                    type: "object",
+                    properties: {  
+                      id: { anyOf: [{ type: "integer" }, { type: "string" }] },
+                      nombre: { type: "string" },
+                      nif: { type: "string" },
+                      descripcion: { anyOf: [{ type: "string" }, { type: "null" }] },
+                      fecha_de_alta: { anyOf: [{ type: "string" }, { type: "null" }] },
+                      fecha_de_baja: { anyOf: [{ type: "string" }, { type: "null" }] }
+                    }
+                  }
+                },
+                texto: {
+                  type: "string",
+                  description: "Mensaje al usuario o resumen/informe formateado en HTML."
+                }
+              },
+              required: ["action", "userIds", "usersData", "texto"]
+            }
+          }
+        }
+      ],
+      tool_choice: { 
+        type: "function", 
+        function: { name: "handleModelResponse" } 
       }
     };
 
     try {
-      const data = await invokeGeminiModel(payload) ?? '{}';
-      return JSON.parse(data);
+      const response = await invokeAzureModel(payload);
+      if (response?.content) return response.content;
+      if (response?.tool_calls && response.tool_calls.length > 0) {
+        const toolArguments = response.tool_calls[0].function.arguments;
+        return JSON.parse(toolArguments);
+      }   
+      return { error: 'Respuesta de la API inesperada o sin llamadas a función.' };
     } catch (error) {
-      console.error('rcg.ai.gemini.handleUserPrompt Error:', error);
+      console.error('rcg.ai.azure.handleUserPrompt Error:', error);
       return { error: `Error procesando la petición: ${error.message}` };
     }
   },
+  /**
+   * Orquesta peticiones multi-paso pidiendo al modelo JSON con protocolo function_call/final (sin tool calling nativo).
+   * @param {string} userText
+   * @param {Array} users
+   * @param {Object} [options]
+   */
   handleWithAgent: async (userText, users, options = {}) => {
 
     const maxIterations = Number(options?.maxIterations || 8);
@@ -160,13 +186,9 @@ rcg.ai.gemini = {
 
     const renderJson = (data) => `<pre class="overflow-x-auto whitespace-pre-wrap mb-1 rounded-lg bg-yellow-200/40 p-2 text-xs">${escapeHtml(JSON.stringify(data, null, 2))}</pre>`;
 
-    // 3. Función principal
     const log = (value, mode = 'info') => {
       const valueType = typeof value;
       let html = '';
-      // ============================================================================
-      // CASO 1: Strings (Logs simples)
-      // ============================================================================
       if (valueType === 'string') {
         const isError = mode === 'error';
         const containerClasses = isError
@@ -178,14 +200,9 @@ rcg.ai.gemini = {
             <span class="inline-block">${escapeHtml(value)}</span>
           </div>
         `;
-      }
-      // ============================================================================
-      // CASO 2: Objetos y otros (Logs complejos)
-      // ============================================================================
-      else {
+      } else {
         let title = '';
         let detail = '';
-
         const isComplexObject = value && valueType === 'object';
 
         if (isComplexObject) {
@@ -324,6 +341,13 @@ rcg.ai.gemini = {
           })
           .filter(Boolean);
         return clone(modified);
+      },
+      sendEmail: ({ id, subject, body }) => {
+        const user = safeUsers.find(u => Number(u.id) === Number(id));
+        if (!user) return { success: false, error: "Usuario no encontrado" };
+        // Simulación de envío de correo
+        console.log(`Simulando envío de correo a ${user.email || 'desconocido'} con asunto "${subject}" y cuerpo "${body}"`);
+        return { success: true, emailSentTo: user.email || null };
       }
     };
 
@@ -356,6 +380,11 @@ rcg.ai.gemini = {
         name: 'buildModifiedUsers',
         description: 'Construye usuarios modificados a partir de updates=[{id,changes}] sin perder propiedades originales.',
         args: { updates: '[{ id:number, changes:object }]' }
+      },
+      {
+        name: 'sendEmail',
+        description: 'Simula el envío de un correo a un usuario por id.',
+        args: { id: 'number', subject: 'string', body: 'string' }
       }
     ];
 
@@ -411,13 +440,11 @@ rcg.ai.gemini = {
     const history = [
       {
         role: 'user',
-        parts: [{
-          text: JSON.stringify({
-            phase: 'initial_request',
-            request: userText,
-            usersSnapshot: safeUsers
-          })
-        }]
+        content: JSON.stringify({
+          phase: 'initial_request',
+          request: userText,
+          usersSnapshot: safeUsers
+        })
       }
     ];
 
@@ -428,20 +455,22 @@ rcg.ai.gemini = {
       for (let i = 0; i < maxIterations; i += 1) {
 
         const payload = {
-          systemInstruction: { parts: [{ text: systemText }] },
-          contents: history,
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 4000,
-            responseMimeType: 'application/json'
-          }
+          model: options?.model || 'gpt-4.1-mini',
+          messages: [
+            { role: 'system', content: systemText },
+            ...history
+          ],
+          temperature: 0.1,
+          max_tokens: 4000,
+          response_format: { type: 'json_object' }
         };
 
         if (i > 0) await delay(1500);
         const target = i === 0 ? 'petición' : 'resultado';
         log(`Enviando ${target} al agente...`, 'info');
 
-        const modelRaw = await invokeGeminiModel(payload);
+        const modelResponse = await invokeAzureModel(payload);
+        const modelRaw = modelResponse?.content ?? '';
         const modelJson = parseJsonFromModel(modelRaw);
         if (!modelJson) {
           log('Respuesta no valida del modelo:', 'error');
@@ -488,20 +517,15 @@ rcg.ai.gemini = {
           }
         }
 
-        history.push({
-          role: 'model',
-          parts: [{ text: JSON.stringify(modelJson) }]
-        });
+        history.push({ role: 'assistant', content: JSON.stringify(modelJson) });
         history.push({
           role: 'user',
-          parts: [{
-            text: JSON.stringify({
-              phase: 'function_result',
-              functionName: toolName,
-              arguments: toolArgs,
-              result: toolResult
-            })
-          }]
+          content: JSON.stringify({
+            phase: 'function_result',
+            functionName: toolName,
+            arguments: toolArgs,
+            result: toolResult
+          })
         });
         log(`Iteración ${i + 1} completada`, 'debug');
       }
@@ -515,10 +539,16 @@ rcg.ai.gemini = {
       };
     } catch (error) {
       log(`Error en la orquestación del agente: ${error.message}`, 'error');
-      console.error('rcg.ai.gemini.handleWithAgent Error:', error);
+      console.error('rcg.ai.azure.handleWithAgent Error:', error);
       return { error: `Error procesando la petición: ${error.message}` };
     }
   },
+  /**
+   * Orquesta peticiones multi-paso usando tool calling nativo de Azure OpenAI (formato function calling estándar).
+   * @param {string} userText
+   * @param {Array} users
+   * @param {Object} [options]
+   */
   handleWithAgentAndTools: async (userText, users, options = {}) => {
     const maxIterations = Number(options?.maxIterations || 8);
     const safeUsers = Array.isArray(users) ? users : [];
@@ -608,81 +638,105 @@ rcg.ai.gemini = {
           const original = safeUsers.find(u => Number(u.id) === Number(item.id));
           return original ? applyUserPatch(original, item.changes) : null;
         }).filter(Boolean);
+      },
+      sendEmail: ({ id, subject, body }) => {
+        const user = safeUsers.find(u => Number(u.id) === Number(id));
+        if (!user) return { success: false, error: "Usuario no encontrado" };
+        // Simulación de envío de correo
+        console.log(`Simulando envío de correo a ${user.email || 'desconocido'} con asunto "${subject}" y cuerpo "${body}"`);
+        return { success: true, emailSentTo: user.email || null };
       }
     };
 
-    // --- DECLARACIÓN DE TOOLS (Nativo Gemini/OpenAI) ---
-    const tools = [{
-      functionDeclarations: [
-        {
+    // --- DECLARACIÓN DE TOOLS (formato estándar OpenAI / Azure) ---
+    const tools = [
+      {
+        type: 'function',
+        function: {
           name: 'listUsers',
-          description: 'Obtiene todos los usuarios disponibles.'
-        },
-        {
+          description: 'Obtiene todos los usuarios disponibles.',
+          parameters: { type: 'object', properties: {} }
+        }
+      },
+      {
+        type: 'function',
+        function: {
           name: 'getUserById',
           description: 'Obtiene un usuario específico por su ID numérico.',
           parameters: {
-            type: 'OBJECT',
-            properties: { id: { type: 'NUMBER' } },
+            type: 'object',
+            properties: { id: { type: 'number' } },
             required: ['id']
           }
-        },
-        {
+        }
+      },
+      {
+        type: 'function',
+        function: {
           name: 'findUsers',
           description: 'Busca usuarios aplicando filtros opcionales.',
           parameters: {
-            type: 'OBJECT',
+            type: 'object',
             properties: {
-              ids: { type: 'ARRAY', items: { type: 'NUMBER' } },
-              nombreContains: { type: 'STRING' },
-              nif: { type: 'STRING' },
-              activo: { type: 'BOOLEAN' }
+              ids: { type: 'array', items: { type: 'number' } },
+              nombreContains: { type: 'string' },
+              nif: { type: 'string' },
+              activo: { type: 'boolean' }
             }
           }
-        },
-        {
+        }
+      },
+      {
+        type: 'function',
+        function: {
           name: 'deleteUser',
           description: 'Elimina un usuario del sistema.',
           parameters: {
-            type: 'OBJECT',
-            properties: { id: { type: 'NUMBER' } },
+            type: 'object',
+            properties: { id: { type: 'number' } },
             required: ['id']
           }
-        },
-        {
+        }
+      },
+      {
+        type: 'function',
+        function: {
           name: 'buildModifiedUsers',
           description: 'Genera la lista de usuarios con los cambios aplicados.',
           parameters: {
-            type: 'OBJECT',
+            type: 'object',
             properties: {
               updates: {
-                type: 'ARRAY',
+                type: 'array',
                 items: {
-                  type: 'OBJECT',
+                  type: 'object',
                   properties: {
-                    id: { type: 'NUMBER' },
-                    changes: { type: 'OBJECT', description: 'Atributos a cambiar (nombre, nif, etc.)' }
+                    id: { type: 'number' },
+                    changes: { type: 'object', description: 'Atributos a cambiar (nombre, nif, etc.)' }
                   }
                 }
               }
             }
           }
-        },
-        {
+        }
+      },
+      {
+        type: 'function',
+        function: {
           name: 'sendEmail',
           description: 'Envía un correo electrónico a un usuario.',
           parameters: {
-            type: 'OBJECT',
+            type: 'object',
             properties: {
-              id: { type: 'NUMBER' },
-              subject: { type: 'STRING' },
-              body: { type: 'STRING' }
+              id: { type: 'number' },
+              subject: { type: 'string' },
+              body: { type: 'string' }
             },
             required: ['id', 'subject', 'body']
           }
         }
-      ]
-    }];
+      }
+    ];
 
     const systemText = `
       Eres un asistente experto en gestión de usuarios. 
@@ -709,7 +763,10 @@ rcg.ai.gemini = {
       }
     `;
 
-    let history = [{ role: 'user', parts: [{ text: `Petición: ${userText}. Usuarios actuales: ${JSON.stringify(safeUsers)}` }] }];
+    let history = [
+      { role: 'system', content: systemText },
+      { role: 'user', content: `Petición: ${userText}. Usuarios actuales: ${JSON.stringify(safeUsers)}` }
+    ];
 
     // ======================================================================
     // --- BUCLE PRINCIPAL DE ORQUESTACIÓN ---
@@ -719,81 +776,76 @@ rcg.ai.gemini = {
       log(`Iniciando orquestación del agente con ${maxIterations} iteraciones máximas`, 'debug');
 
       for (let i = 0; i < maxIterations; i++) {
-        // ==================================================================
-        // 1. Preparar payload para invocar el modelo Gemini con herramientas
-        // ==================================================================
         const payload = {
-          functionCall: true,
-          systemInstruction: { parts: [{ text: systemText }] },
-          contents: history,
-          tools: tools,
-          generationConfig: { temperature: 0 }
+          model: options?.model || 'gpt-4.1-mini',
+          messages: history,
+          tools,
+          tool_choice: 'auto',
+          temperature: 0
         };
 
         if (i > 0) await delay(1500);
         const target = i === 0 ? 'petición' : 'resultado';
         log(`Enviando ${target} al agente...`, 'info');
-        
-        const modelResponse = await invokeGeminiModel(payload);
-        const part = modelResponse.candidates[0].content.parts[0];
+
+        const message = await invokeAzureModel(payload);
+
         // ==================================================================
-        // 2. El modelo solicita una función (function_call)
+        // 2. El modelo solicita una o varias funciones (tool_calls)
         // ==================================================================
-        if (part.functionCall) {
-          const { name, args } = part.functionCall;
-          // ================================================================
-          // Validar la existencia de la función en el contexto
-          // ================================================================
-          const TOOL_NOT_FOUND = `Función no encontrada: ${name}`;
-          const toolFn = toolContext[name];
-          // ================================================================
-          // Invocar la función y obtener el resultado
-          // ================================================================
-          log({ type: 'function_call', name, arguments: args }, 'debug');
-          if (!toolFn) log(TOOL_NOT_FOUND, 'error');
-          const result = await (toolFn?.(args) || { error: TOOL_NOT_FOUND });
-          // ================================================================   
-          // Añadir al historial: La llamada del modelo y la respuesta
-          // ================================================================
-          history.push(modelResponse.candidates[0].content);
+        if (message?.tool_calls && message.tool_calls.length > 0) {
           history.push({
-            role: 'user', // 'user' o 'function' según SDK
-            parts: [{
-              functionResponse: {
-                name: name,
-                response: { content: result }
-              }
-            }]
+            role: 'assistant',
+            content: message.content || null,
+            tool_calls: message.tool_calls
           });
-          // =============================================================
-          // Siguiente iteración para que el modelo procese el resultado.
-          // =============================================================
-          log(`Iteración ${i + 1} completada`, 'debug');     
+
+          for (const toolCall of message.tool_calls) {
+            const name = toolCall.function?.name;
+            let args = {};
+            try {
+              args = JSON.parse(toolCall.function?.arguments || '{}');
+            } catch (_) {
+              args = {};
+            }
+
+            const TOOL_NOT_FOUND = `Función no encontrada: ${name}`;
+            const toolFn = toolContext[name];
+
+            log({ type: 'function_call', name, arguments: args }, 'debug');
+            if (!toolFn) log(TOOL_NOT_FOUND, 'error');
+            const result = await (toolFn?.(args) ?? { error: TOOL_NOT_FOUND });
+
+            history.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: JSON.stringify(result)
+            });
+          }
+
+          log(`Iteración ${i + 1} completada`, 'debug');
           continue;
         }
+
         // ===============================================================
         // 3. Manejar la respuesta final del modelo (JSON válido)
         // ===============================================================
-        if (part.text) {
-          try {
-            const result = parseJsonFromModel(part.text);
+        if (message?.content) {
+          const result = parseJsonFromModel(message.content);
+          if (result) {
             log({ type: 'end_call', texto: result.texto, value: result });
             log(`Iteración ${i + 1} completada`, 'debug');
             return result;
-          } catch (e) {
-            const fallback = parseJsonFromModel(part.text);
-            if (fallback) return fallback;
           }
         }
       }
       throw new Error('Límite de iteraciones alcanzado');
     } catch (error) {
       log(`Error: ${error.message}`, 'error');
-      return { 
-        texto: "Error en la orquestación", 
-        error: error.message 
+      return {
+        texto: "Error en la orquestación",
+        error: error.message
       };
     }
-
   }
 };

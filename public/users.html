@@ -14,6 +14,7 @@
   <script src="/js/components_02.js"></script>
   <script src="/js/ai-gemini.js"></script>
   <script src="/js/ai-openrouter.js"></script>
+  <script src="/js/ai-azure.js"></script>
   <script src="/js/ai-groq.js"></script>
 </head>
 
@@ -79,40 +80,54 @@
           <textarea on-input="actualizarCampo:prompt" on-keydown="handlePromptKeyDown"
             data-bind="value:estado.form.prompt"
             class="w-full flex-1 resize-none border-0 bg-transparent p-2 text-sm text-slate-700 focus:outline-none focus:ring-0"
-            rows="2" placeholder="Escribe tu petición aquí..."></textarea>
-          <div class="flex flex-wrap gap-2">
-            <button type="button" on-click="sendPromptToAI"
-              class="tool-bar-button border-slate-200 self-end sm:self-auto shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6">
-                <path
-                  d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" />
-                <path d="M20 2v4" />
-                <path d="M22 4h-4" />
-                <circle cx="4" cy="20" r="2" />
-              </svg>
-            </button>
-            <button type="button" on-click="sendPromptToAgent"
-              class="tool-bar-button border-slate-200 self-end sm:self-auto shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6">
-                <path d="M12 6V2H8" />
-                <path d="M15 11v2" />
-                <path d="M2 12h2" />
-                <path d="M20 12h2" />
-                <path
-                  d="M20 16a2 2 0 0 1-2 2H8.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 4 20.286V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z" />
-                <path d="M9 11v2" />
-              </svg>
-            </button>
-            <button type="button" on-click="reloadUsers"
-              class="tool-bar-button border-slate-200 self-end sm:self-auto shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6">
-                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                <path d="M3 3v5h5" />
-              </svg>
-            </button>
+            rows="3" placeholder="Escribe tu petición aquí..."></textarea>
+          <div class="flex flex-col gap-2 items-end text-xs">
+            <div class="flex flex-wrap gap-2">
+              <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                <input type="radio" name="agent-mode" value="handleWithAgentAndTools"
+                  on-change="setAgentMode:handleWithAgentAndTools" class="accent-slate-800" />
+                Tools
+              </label>
+              <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                <input type="radio" name="agent-mode" value="handleWithAgent"
+                  on-change="setAgentMode:handleWithAgent" checked class="accent-slate-800" />
+                Json
+              </label>
+            </div>
+            <div>
+              <button type="button" on-click="sendPromptToAI"
+                class="tool-bar-button border-slate-200 self-end sm:self-auto shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6">
+                  <path
+                    d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" />
+                  <path d="M20 2v4" />
+                  <path d="M22 4h-4" />
+                  <circle cx="4" cy="20" r="2" />
+                </svg>
+              </button>
+              <button type="button" on-click="sendPromptToAgent"
+                class="tool-bar-button border-slate-200 self-end sm:self-auto shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6">
+                  <path d="M12 6V2H8" />
+                  <path d="M15 11v2" />
+                  <path d="M2 12h2" />
+                  <path d="M20 12h2" />
+                  <path
+                    d="M20 16a2 2 0 0 1-2 2H8.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 4 20.286V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z" />
+                  <path d="M9 11v2" />
+                </svg>
+              </button>
+              <button type="button" on-click="reloadUsers"
+                class="tool-bar-button border-slate-200 self-end sm:self-auto shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
         <div class="mt-2 bg-white">
@@ -186,6 +201,9 @@
             <button type="button" on-click="setAIProvider:groq" data-bind="class:
                 tool-bar-button border-slate-200
                 bg-gray-300 ? estado.aiProvider === 'groq'">Groq</button>
+            <button type="button" on-click="setAIProvider:azure" data-bind="class:
+                tool-bar-button border-slate-200
+                bg-gray-300 ? estado.aiProvider === 'azure'">Azure</button>
           </div>
 
           <div class="flex flex-wrap gap-2 p-2" data-if="isGroq">
@@ -360,6 +378,7 @@
         selectedId: null,
         aiProvider: 'gemini',
         groqModel: 'openai/gpt-oss-20b',
+        agentMode: 'handleWithAgent',
         form: {
           id: '',
           nif: '',
@@ -461,7 +480,9 @@
           estado.form.ai_response = '';
           estado.loading_ai_response = true;
           estado.form.agent_mode = true;
-          const result = await rcg.ai.gemini.handleWithAgent(
+          const provider = estado.aiProvider || 'gemini';
+          const fn = rcg.ai[provider][estado.agentMode];
+          const result = await fn(
             estado.form.prompt,
             estado.users,
             {
@@ -497,9 +518,18 @@
         estado.groqModel = model;
       }
 
+      function setAgentMode(eventData) {
+        const [mode] = eventData.arg;
+        estado.agentMode = mode;
+      }
+
       handleAIResponse = (result) => {
         if (!result) {
           estado.form.ai_response = 'No se recibió respuesta del AI.';
+          return;
+        }
+        if(typeof result === 'string') {
+          estado.form.ai_response = result;
           return;
         }
         if (result.error) {
@@ -724,6 +754,7 @@
           sendPromptToAgent,
           setAIProvider,
           setGroqModel,
+          setAgentMode,
           isGroq,
           recargarUsuarios,
           reloadUsers,
