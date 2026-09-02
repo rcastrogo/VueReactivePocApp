@@ -72,3 +72,36 @@ writeGeneratedFiles(files, './src/_code');
 - `@vue/reactivity` se carga por CDN desde `public/js/main.js`.
 - BrowserSync sirve la carpeta `public` en `http://localhost:3000`.
 - Los cambios en HTML, CSS y JS recargan automaticamente el navegador.
+
+## Tabla usuario (Postgres/Neon)
+```sql
+CREATE SCHEMA "public";
+CREATE TABLE "usuario" (
+	"id" bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "usuario_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 1 CACHE 1),
+	"nif" varchar(20) NOT NULL,
+	"nombre" varchar(255) NOT NULL,
+	"descripcion" text,
+	"fecha_de_alta" timestamp DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	"fecha_de_baja" timestamp
+);
+CREATE UNIQUE INDEX "idx_usuario_nif" ON "usuario" ("nif");
+CREATE UNIQUE INDEX "usuario_pkey" ON "usuario" ("id");
+```
+
+### JSON de entidad para el generador de codigo (IA)
+```json
+{
+	"itemName": "Usuario",
+	"collectionName": "Usuarios",
+	"tableName": "usuario",
+	"namespace": "",
+	"properties": [
+		{ "name": "Id", "dbName": "id", "dbType": "long", "isId": true, "omitDal": false, "readOnly": true },
+		{ "name": "Nif", "dbName": "nif", "dbType": "string", "isId": false, "omitDal": false, "readOnly": false },
+		{ "name": "Nombre", "dbName": "nombre", "dbType": "string", "isId": false, "omitDal": false, "readOnly": false },
+		{ "name": "Descripcion", "dbName": "descripcion", "dbType": "string", "isId": false, "omitDal": false, "readOnly": false },
+		{ "name": "FechaDeAlta", "dbName": "fecha_de_alta", "dbType": "DateTime", "isId": false, "omitDal": false, "readOnly": true },
+		{ "name": "FechaDeBaja", "dbName": "fecha_de_baja", "dbType": "DateTime", "isId": false, "omitDal": false, "readOnly": false }
+	]
+}
+```
