@@ -795,5 +795,296 @@ rcg.ai.gemini = {
       };
     }
 
+  },
+  chatPrompt: `
+    Eres un asistente experto en gestión de usuarios. Tu objetivo es procesar peticiones utilizando de forma secuencial (nunca en paralelo) las herramientas disponibles en el sistema.
+
+    INSTRUCCIONES DE FLUJO Y HERRAMIENTAS:
+    1. Analiza la petición y llama a las funciones necesarias cuando corresponda.
+    2. Si falta un dato obligatorio (como un NIF) o vas a realizar una acción destructiva (borrar), usa obligatoriamente 'requestMissingData' o 'requestConfirmation' y espera respuesta. No uses 'requestMissingData' para acciones completas.
+    3. Las palabras tipo, categoría, agrupación o rol se refieren a la propiedad "descripcion" de los usuarios.
+    4. Si la petición implica resúmenes, agrupaciones o estadísticas, asigna action: "resumen", deja "userIds" y "usersData" vacíos, y redacta el texto en formato HTML con listas.
+
+    REGLA ABSOLUTA DE SALIDA:
+    - Tu respuesta debe ser EXCLUSIVAMENTE un objeto JSON válido, comenzando con '{' y terminando con '}'. 
+    - Está PROHIBIDO escribir texto, saludos o explicaciones fuera del JSON. Todo el contenido conversacional (incluyendo explicaciones previas al uso de herramientas) debe ir dentro de la propiedad "texto".
+    - No uses bloques de código Markdown (como '''json''', '''xml''').
+
+    FORMATO JSON OBLIGATORIO:
+    {
+      "action": "card|grid|resumen|ninguna",
+      "userIds": [],
+      "usersData": [],
+      "texto": "Todo el contenido conversacional, saludos, explicaciones de herramientas o listas van aquí.",
+      "steps": []
+    }
+  `,
+  handleChat: async (userText, options = {}) => {
+
+    const maxIterations = Number(options?.maxIterations || 8);
+    const clone = (value) => JSON.parse(JSON.stringify(value));
+    const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    let applyDelay = true;
+
+    const safeUsers = STATIC_USERS;
+
+    const notify = (value, extra = {}) => options?.log?.(value, extra );
+    const notifyloading = () => notify('', {'type': 'loading'});
+    const notifyText = (value) => notify(value, {'type': 'text'});
+    const notifyError = (value) => notify(value, {'type': 'error'});
+
+    const parseJsonFromModel = (rawText) => {
+      const text = String(rawText || '').trim();
+      if (!text) return null;
+
+      const clean = text
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/\s*```$/, '')
+        .trim();
+
+      try {
+        return JSON.parse(clean);
+      } catch (_) {
+        const first = clean.indexOf('{');
+        const last = clean.lastIndexOf('}');
+        if (first === -1 || last === -1 || last <= first) return null;
+        try {
+          return JSON.parse(clean.slice(first, last + 1));
+        } catch (__) {
+          return null;
+        }
+      }
+    };
+
+    const toolContext = {
+      deleteUser: ({ id }) => {
+        console.log(`Deleting user by ID: ${id}`);
+        return true;
+      },
+      listUsers: () => {
+        console.log(`Listing all users`);
+        return clone(safeUsers);
+      },
+      getUserById: ({ id }) => {
+        console.log(`Getting user by ID: ${id}`);
+        return clone(safeUsers.find(u => Number(u.id) === Number(id)) || null);
+      },
+      findUsers: ({ ids, nombreContains, nif, activo }) => {
+        console.log(`Finding users with filters: ids=${ids}, nombreContains=${nombreContains}, nif=${nif}, activo=${activo}`);
+        let res = safeUsers.slice();
+        if (ids?.length) res = res.filter(u => ids.map(Number).includes(Number(u.id)));
+        if (nombreContains) res = res.filter(u => u.nombre?.toLowerCase().includes(nombreContains.toLowerCase()));
+        if (nif) res = res.filter(u => u.nif?.toLowerCase() === nif.toLowerCase());
+        if (activo !== undefined) res = res.filter(u => activo ? !u.fecha_de_baja : !!u.fecha_de_baja);
+        return clone(res);
+      },
+      userHasPendingActions: ({ id }) => {
+        console.log(`Checking pending actions for user ID: ${id}`);
+        const user = safeUsers.find(u => Number(u.id) === Number(id));
+        if (!user) return false;
+        return Math.random() < 0.5;
+      },
+      requestConfirmation: ({ message }) => {
+        console.log(`Solicitando confirmación: ${message}`);        
+        notify(message, { type: 'confirmation' });
+        return new Promise((resolve) => {
+          window.__pendingAgentResolve = (confirmed) => {
+            applyDelay = false;
+            resolve({ confirmed: confirmed ? "El usuario confirmó la acción" : "El usuario canceló la acción" });
+          };
+        });
+      },
+      requestMissingData: ({ prompt, fieldName }) => {
+        console.log(`Solicitando dato (${fieldName}): ${prompt}`);     
+        notify(prompt, { type: 'input_prompt', fieldName });
+        return new Promise((resolve) => {
+          window.__pendingAgentResolve = (inputValue) => {
+            applyDelay = false;
+            resolve({ [fieldName]: inputValue });
+          };
+        });
+      }
+    };
+
+    const tools = [{
+      functionDeclarations: [
+        {
+          name: 'deleteUser',
+          description: 'Borra un usuario específico.',
+          parameters: {
+            type: 'OBJECT',
+            properties: { id: { type: 'NUMBER' } },
+            required: ['id']
+          }
+        },
+        {
+          name: 'listUsers',
+          description: 'Obtiene todos los usuarios disponibles.'
+        },
+        {
+          name: 'getUserById',
+          description: 'Obtiene un usuario específico por su ID numérico.',
+          parameters: {
+            type: 'OBJECT',
+            properties: { id: { type: 'NUMBER' } },
+            required: ['id']
+          }
+        },
+        {
+          name: 'findUsers',
+          description: 'Busca usuarios aplicando filtros opcionales.',
+          parameters: {
+            type: 'OBJECT',
+            properties: {
+              ids: { type: 'ARRAY', items: { type: 'NUMBER' } },
+              nombreContains: { type: 'STRING' },
+              nif: { type: 'STRING' },
+              activo: { type: 'BOOLEAN' }
+            }
+          }
+        },
+        {
+          name: 'userHasPendingActions',
+          description: 'Verifica si un usuario tiene acciones pendientes.',
+          parameters: {
+            type: 'OBJECT',
+            properties: { id: { type: 'NUMBER' } },
+            required: ['id']
+          }
+        },
+        {
+          name: 'requestConfirmation',
+          description: 'Solicita confirmación explícita al usuario antes de realizar una acción destructiva o importante.',
+          parameters: {
+            type: 'OBJECT',
+            properties: {
+              message: { type: 'STRING', description: 'Pregunta o mensaje de confirmación para el usuario.' }
+            },
+            required: ['message']
+          }
+        },
+        {
+          name: 'requestMissingData',
+          description: 'Solicita un dato faltante o necesario al usuario para continuar con la orquestación.',
+          parameters: {
+            type: 'OBJECT',
+            properties: {
+              prompt: { type: 'STRING', description: 'Pregunta o instrucción de lo que necesitas que el usuario escriba.' },
+              fieldName: { type: 'STRING', description: 'Nombre del campo que necesitas.' }
+            },
+            required: ['prompt', 'fieldName']
+          }
+        }
+      ]
+    }];
+
+    // const systemText = `
+    //   Eres un asistente experto en gestión de usuarios. 
+    //   Tu objetivo es procesar la petición del usuario utilizando herramientas disponibles.
+      
+    //   FLUJO:
+    //   1. Analiza la petición.
+    //   2. Llama a las funciones necesarias.
+    //   3. Al terminar, responde SIEMPRE con el formato JSON final detallado abajo.
+      
+    //   IMPORTANTE: 
+    //   1. Si para continuar necesitas un dato obligatorio que el usuario no ha proporcionado (como un NIF o un motivo), 
+    //      o si vas a realizar una acción crítica/destructiva (como borrar un usuario), usa obligatoriamente la función 'requestMissingData' o 'requestConfirmation' 
+    //      y espera su respuesta antes de avanzar. Termina si no hay respuesta del usuario o cancela. Utiliza 'requestMissingData' UNICAMENTE para solicitar valores NO una acción completa.
+    //   2. Las palabras tipo|categoria|agrupación|rol y similares, generamente se refieren a la propiedad "descripcion" de los usuarios.
+    //   3. No genereres NUNCA '''json''', '''xml''' ni otros bloques de código en la respuesta final. Solo JSON plano.
+    //   4. Ejecuta funciones de forma secuencial y estricta. No realices llamada a funciones en paralelo.
+    //   5. REGLA ABSOLUTA DE SALIDA: Todo texto conversacional, saludo, explicación de herramientas o listado de ejemplos DEBE ir estrictamente dentro de la propiedad "texto" del JSON. Está COMPLETAMENTE PROHIBIDO escribir texto plano fuera del objeto JSON. El primer carácter de tu respuesta debe ser '{' y el último '}'.      6. Resumenes|agupaciones|estadísticas|información la acción será resumen y el formato del texto será html con listas. UserData y userIds array vacío.
+      
+    //   FORMATO DE RESPUESTA FINAL (JSON):
+    //   {
+    //     "action": "card|grid|resumen|ninguna",
+    //     "userIds": [],
+    //     "usersData": [],
+    //     "texto": "Aquí metes absolutamente todo el texto, saludos, listas de ejemplos o explicaciones para el usuario.",
+    //     "steps": []
+    //   }
+    // `;
+
+    let history = [
+      { 
+        role: 'user', 
+        parts: [
+          { 
+            text: `Petición: ${userText}` 
+          }
+        ] 
+      }
+    ];
+
+    try {
+      
+      notifyText(`Enviando petición al agente...`);
+
+      for (let i = 0; i < maxIterations; i++) {
+
+        notifyloading();
+        if (i > 0) await delay(1500);       
+        applyDelay = true;
+        const payload = {
+          functionCall: true,
+          systemInstruction: { parts: [{ text: rcg.ai.gemini.chatPrompt }] },
+          contents: history,
+          tools: tools,
+          generationConfig: { temperature: 0 }
+        };
+
+        const modelResponse = await invokeGeminiModel(payload);
+        const content = modelResponse.candidates[0].content;
+        let textResponse = '';
+        let functionCall = null;
+        // Iterar sobre las partes para capturar texto y función
+        for (const part of content.parts) {
+          if (part.text) textResponse += part.text;
+          if (part.functionCall) functionCall = part.functionCall;
+        }
+        // Si el modelo escribió un texto explicativo, muéstralo en la UI
+        if (functionCall && textResponse) notifyText(textResponse);
+
+        if (functionCall) {
+          const { name, args } = functionCall;
+          const toolFn = toolContext[name];
+          const TOOL_NOT_FOUND = `Función no encontrada: ${name}`;
+          if (!toolFn) notifyError(TOOL_NOT_FOUND);
+
+          notifyloading();
+          const result = await (toolFn?.(args) || { error: TOOL_NOT_FOUND });
+
+          history.push(content);
+          history.push({
+            role: 'user',
+            parts: [{
+              functionResponse: {
+                name: name,
+                response: { content: result }
+              }
+            }]
+          });    
+          continue;
+        }
+
+        if (textResponse) {
+          try {
+            const result = parseJsonFromModel(textResponse);
+            return result;
+          } catch (e) {
+            return { texto: textResponse }
+          }
+        }
+
+      }
+      throw new Error('Límite de iteraciones alcanzado');
+    } catch (error) {
+      return { 
+        texto: `Error en la orquestación: ${error.message}`, 
+        error: error.message 
+      };
+    }
   }
 };

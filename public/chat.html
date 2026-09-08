@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Usuarios CRUD API</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="/css/tailwind.css" rel="stylesheet">
+  <script src="/js/reactivity.global.js"></script>
+  <script src="/js/lib.js"></script>
+  <script src="/js/components_02.js"></script>
+  <script type="module">
+    import STATIC_USERS from '/js/users.json' with { type: 'json' };
+    window.STATIC_USERS = STATIC_USERS;
+  </script>
+  <script src="/js/ai-gemini.js"></script>  
+</head>
+
+<body class="h-screen overflow-hidden bg-slate-50 text-slate-900"
+  style="font-family: 'Space Grotesk', sans-serif;">
+  <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+    <div class="absolute -left-16 top-10 h-56 w-56 rounded-full bg-sky-500/50 blur-3xl"></div>
+    <div class="absolute right-0 top-1/3 h-72 w-72 rounded-full bg-indigo-500/40 blur-3xl"></div>
+    <div class="absolute bottom-0 left-1/3 h-52 w-52 rounded-full bg-emerald-500/40 blur-3xl"></div>
+  </div>
+
+  <main class="mx-auto flex h-screen flex-col">
+    <section
+      class="shrink-0 border-b border-slate-300 bg-white/20 p-4 backdrop-blur sm:p-6">
+      <div class="flex flex-col gap-5">
+        <div class="text-center">
+          <p class="text-xs font-semibold tracking-[0.22em] text-slate-500">REACTIVE UI LAB</p>
+          <h1 class="text-3xl font-bold leading-tight text-slate-900 md:text-5xl">✨ Gestión de Usuarios</h1>
+          <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+            <!-- Botón de Inicio / Enlace -->
+            <a class="inline-flex items-center justify-center p-2.5 sm:px-4 sm:py-2 rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 font-medium text-sm" href="/index.html" title="Inicio">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 sm:mr-2">
+                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+              <span class="hidden sm:inline">Inicio</span>
+            </a>
+            <!-- Botón: Ver Prompt -->
+            <button type="button" 
+              on-click="showPrompt"
+              class="inline-flex items-center justify-center p-2.5 sm:px-4 sm:py-2 rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 font-medium text-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              <span class="hidden sm:inline ml-2">Prompt</span>
+            </button>
+
+            <button type="button" 
+              on-click="showPromptList"
+              class="inline-flex items-center justify-center p-2.5 sm:px-4 sm:py-2 rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 font-medium text-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                <line x1="8" y1="6" x2="21" y2="6"/>
+                <line x1="8" y1="12" x2="21" y2="12"/>
+                <line x1="8" y1="18" x2="21" y2="18"/>
+                <line x1="3" y1="6" x2="3.01" y2="6"/>
+                <line x1="3" y1="12" x2="3.01" y2="12"/>
+                <line x1="3" y1="18" x2="3.01" y2="18"/>
+              </svg>
+              <span class="hidden sm:inline ml-2">Lista de Prompts</span>
+            </button>
+          </div>
+
+        </div>        
+      </div>     
+    </section>
+
+    <section class="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4 sm:px-6">
+      <div class="mx-auto max-w-3xl">
+
+        <div data-if="!estado.ready" 
+          class="
+              prose max-w-none rounded-2xl 
+              border border-slate-200 bg-white p-4 text-sm 
+              leading-relaxed text-slate-700 shadow-lg shadow-slate-200/60"
+          >
+          <div id="ai-response-container">
+          </div>
+          <div data-if="estado.loading" class="my-2">
+            <div data-component="app-spinner" [size]="sm"></div>
+          </div>                    
+        </div>   
+
+        <div data-if="estado.ready"
+          class="flex h-full flex-col items-center justify-center gap-2 text-center text-slate-400">
+          <p class="text-sm">El asistente está listo. Escribe tu petición para comenzar.</p>
+        </div>
+
+      </div>
+
+    </section>
+
+    <section class="p-6">
+      <div class="mx-auto max-w-3xl">
+        <div
+          class="flex flex-col sm:flex-row items-stretch sm:items-end gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-lg shadow-slate-200/60 focus-within:border-sky-500">
+          <textarea on-input="updateStateFormField:prompt" on-keydown="handlePromptKeyDown"
+            data-bind="value:estado.form.prompt"
+            class="w-full flex-1 resize-none border-0 bg-transparent p-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-0"
+            rows="2" placeholder="Escribe tu petición aquí...">
+          </textarea>
+          <button type="button" on-click="callAgent"
+            class="tool-bar-button self-end sm:self-auto shrink-0 hover:bg-sky-500">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6">
+              <path
+                d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" />
+              <path d="M20 2v4" />
+              <path d="M22 4h-4" />
+              <circle cx="4" cy="20" r="2" />
+            </svg>
+          </button>
+          <button type="button" on-click="resetUI"
+            class="tool-bar-button self-end sm:self-auto shrink-0 hover:bg-sky-500">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
+              class="size-6">
+              <path d="M18 6L6 18" />
+              <path d="M6 6l12 12" />
+            </svg>
+          </button>
+          <button type="button" 
+            on-click="toggleVoiceInput" 
+            title="Dictar por voz"
+            class="tool-bar-button self-end sm:self-auto shrink-0 hover:bg-sky-500">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
+              class="size-6">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+              <path d="M19 10v1a7 7 0 0 1-14 0v-1"/>
+              <line x1="12" x2="12" y1="19" y2="22"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div 
+    data-bind="class:
+      pointer-events-none fixed inset-0 z-100 flex items-center justify-center bg-black/40 overflow-hidden transition-all duration-300
+      hidden ? !estado.voiceInputActive
+    ">
+    <div class="flex flex-col items-center gap-4 text-white">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
+        class="size-16 animate-pulse text-blue-400">
+        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+        <path d="M19 10v1a7 7 0 0 1-14 0v-1"/>
+        <line x1="12" x2="12" y1="19" y2="22"/>
+      </svg>
+      <span class="text-xl font-medium tracking-wide animate-pulse">
+        Escuchando...
+      </span>
+    </div>
+  </div>
+
+  <script>
+
+    (function () {
+
+      const { reactive, computed } = VueReactivity;
+
+      const estado = reactive({
+        loading: false,
+        ready: true,
+        disabled: false,
+        aiProvider: 'gemini',
+        voiceInputActive: false,
+        form: {
+          prompt: '',
+        }
+      });
+
+      async function callAgent() {
+        clearAiResponseContainer();
+        if (!estado.form.prompt?.trim()){
+          estado.ready = true;
+          estado.disabled = false;
+          return;          
+        }
+        try {
+          estado.ready = false;
+          estado.disabled = true;
+          estado.loading = true;
+          const provider = estado.aiProvider || 'gemini';
+          const fn = rcg.ai[provider].handleChat;
+          const result = await fn(
+            estado.form.prompt,
+            {
+              log: (value, options) => {
+                estado.loading = options?.type === 'loading';
+                if(estado.loading) return;               
+                appendEntry(value, options);
+              }
+            }
+          );
+          appendEntry(result || {});          
+        } catch (error) {
+          console.error('No se pudo atender la petición del agente:', error);
+          appendEntry(
+            error?.message || 'Error desconocido',
+            { type: 'error' }
+          );         
+        }
+        estado.loading = false;
+        estado.disabled = false;
+      }
+
+      function resetUI() {
+        estado.form.prompt = '';
+        callAgent();
+      }
+
+      function clearAiResponseContainer() {
+        const container = document.getElementById('ai-response-container');
+        if (!container) return;
+        container.innerHTML = '';
+      }
+
+      function respondToAgent(value){
+        if (window.__pendingAgentResolve) {
+          const resolveFn = window.__pendingAgentResolve;
+          window.__pendingAgentResolve = null;
+          resolveFn(value);
+        }
+      }
+
+      function fillInputPromptEntry(element, text, options) {
+        console.log(`Fieldname: ${options?.fieldName}`);
+        let inputValue = options?.defaultValue || '';
+        element.innerHTML = `
+          <div class="bg-white border border-slate-200 rounded-xl p-4 mb-3 space-y-3 shadow-sm">
+            <!-- Cabecera y Mensaje -->
+            <div class="flex items-start gap-3">
+              <span class="inline-flex items-center justify-center rounded-md bg-slate-100 text-slate-600 text-xs font-semibold flex-shrink-0 mt-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
+                  class="size-10 text-slate-600">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </span>
+              <div class="space-y-1 w-full">
+                <h4 class="text-xs font-semibold text-slate-900 tracking-tight">Entrada requerida</h4>
+                <p class="text-xs text-slate-600 leading-relaxed">${text}</p>
+                <input type="text" 
+                  value="${inputValue}"
+                  placeholder="${options?.placeholder || 'Escribe una respuesta...'}"
+                  on-input="updateValue" on-keydown="handleInputptKeyDown"
+                  class="disabled:opacity-50 mt-2 w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-sm" />
+              </div>
+            </div>
+            <!-- Botones de Acción -->
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button type="button" on-click="cancel" class="disabled:opacity-50 inline-flex items-center px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 font-medium text-xs bg-white hover:bg-slate-50 transition-colors shadow-sm">
+                Cancelar
+              </button>
+              <button type="button" on-click="submit" class="disabled:opacity-50 inline-flex items-center px-3 py-1.5 rounded-lg bg-slate-900 text-white font-medium text-xs hover:bg-slate-800 transition-colors shadow-sm">
+                Enviar
+              </button>
+            </div>
+          </div>
+        `;
+        
+        rcg.hydrate(element, {
+          updateValue: (eventData) => { inputValue = eventData.el.value; },
+          cancel: function() {
+            respondToAgent('cancela todo');
+            this.disableControls();
+          },
+          submit: function(){
+            if(inputValue.trim().length) {
+              respondToAgent(inputValue);
+              this.disableControls();
+            }
+          },
+          handleInputptKeyDown: function(eventData){
+            const ev = eventData.ev || eventData;
+            if (ev.key === 'Enter' && !ev.shiftKey) {
+              ev.preventDefault();
+              this.submit();
+            }
+          },
+          disableControls : function() {
+            element.querySelectorAll('input, button, textarea')
+                   .forEach(el => el.disabled = true);
+            element.classList.add('opacity-50');
+          }
+        });      
+        
+        setTimeout(() => {
+          element.querySelector('input, textarea')?.focus();
+        }, 200);
+  
+      }
+
+      function fillConfirmationComponent(element, message) {
+        element.innerHTML = `
+          <div class="bg-white border border-slate-200 rounded-xl p-4 mb-3 space-y-3 shadow-sm">      
+            <!-- Cabecera y Mensaje -->
+            <div class="flex items-start gap-3">
+              <span class="inline-flex items-center justify-center rounded-md bg-slate-100 text-slate-600 text-xs font-semibold flex-shrink-0 mt-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
+                  class="size-10 text-slate-600">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                  <path d="M12 17h.01" />
+                </svg>
+              </span>
+              <div class="space-y-1">
+                <h4 class="text-xs font-semibold text-slate-900 tracking-tight">Confirmación requerida</h4>
+                <p class="text-xs text-slate-600 leading-relaxed">${message}</p>
+              </div>
+            </div>
+            <!-- Botones de Acción -->
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button type="button" on-click="cancel" class="disabled:opacity-50 inline-flex items-center px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 font-medium text-xs bg-white hover:bg-slate-50 transition-colors shadow-sm">
+                Cancelar
+              </button>
+              <button type="button" on-click="accept" class="disabled:opacity-50 inline-flex items-center px-3 py-1.5 rounded-lg bg-slate-900 text-white font-medium text-xs hover:bg-slate-800 transition-colors shadow-sm">
+                Aceptar
+              </button>
+            </div>
+          </div>
+        `;
+        rcg.hydrate(element, {
+          cancel: function() {
+            respondToAgent(false);
+            this.disableControls();
+          },
+          accept: function() {
+            respondToAgent(true);
+            this.disableControls();
+          },          
+          disableControls : function() {
+            element.querySelectorAll('input, button, textarea')
+                   .forEach(el => el.disabled = true);
+            element.classList.add('opacity-50');
+          }
+        });
+      }
+
+      function fillCardComponent(element, users, usersIds, texto ){
+        element.innerHTML = `
+          <p class="text-gray-800 border border-gray-300 px-3 py-1.5 rounded-lg bg-gray-50 text-xs shadow-sm mb-3 font-medium">${texto}</p>
+
+          <div data-each="user in users">
+            <div class="bg-white shadow-sm border border-slate-200 rounded-xl p-3.5 mb-3 space-y-2.5">
+              
+              <!-- Cabecera de la tarjeta con Título y Botones de Acción -->
+              <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                <div class="flex items-center gap-1.5">
+                  <span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-indigo-50 text-indigo-600 text-xs">
+                    👤
+                  </span>
+                  <span class="text-xs font-bold text-slate-800">Tarjeta de usuario</span>
+                </div>
+                
+                <!-- Botones de Acción Arriba -->
+                <div class="flex items-center gap-1.5">
+                  <button type="button" on-click="saveUser" class="tool-bar-button inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-600 text-white font-medium text-xs hover:bg-indigo-700 shadow-sm transition-colors">Guardar</button>
+                  <button type="button" on-click="deleteUser" class="tool-bar-button inline-flex items-center px-2.5 py-1 rounded-md border border-rose-200 text-rose-600 font-medium text-xs hover:bg-rose-50 transition-colors">Eliminar</button>
+                </div>
+              </div>
+
+              <!-- Campos: ID y NIF -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <label class="text-[11px] font-semibold text-slate-600">ID
+                  <input name="id" data-bind="value:user.id"
+                    class="app-input mt-1 w-full rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-slate-500 text-xs cursor-not-allowed focus:outline-none" type="text" disabled readonly>
+                </label>
+                <label class="text-[11px] font-semibold text-slate-600">NIF *
+                  <input name="nif" data-bind="value:user.nif" on-input="actualizarCampo:nif"
+                    class="app-input mt-1 w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-slate-800 text-xs shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" type="text">
+                </label>
+              </div>
+
+              <!-- Campo: Nombre -->
+              <div class="grid grid-cols-1">
+                <label class="text-[11px] font-semibold text-slate-600">Nombre *
+                  <input name="nombre" data-bind="value:user.nombre" on-input="actualizarCampo:nombre"
+                    class="app-input mt-1 w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-slate-800 text-xs shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" type="text">
+                </label>
+              </div>
+
+              <!-- Campo: Descripción -->
+              <div class="grid grid-cols-1">
+                <label class="text-[11px] font-semibold text-slate-600">Descripción
+                  <input name="descripcion" data-bind="value:user.descripcion" on-input="actualizarCampo:descripcion"
+                    class="app-input mt-1 w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-slate-800 text-xs shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                </label>
+              </div>
+
+              <!-- Fechas -->
+              <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                <label class="text-[11px] font-semibold text-slate-600">Fecha de alta
+                  <input name="fecha_de_alta" data-bind="value:user.fecha_de_alta"
+                    class="app-input mt-1 w-full rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-slate-500 text-xs cursor-not-allowed focus:outline-none" type="text" disabled readonly>
+                </label>
+                <label class="text-[11px] font-semibold text-slate-600">Fecha de baja
+                  <input name="fecha_de_baja" data-bind="value:user.fecha_de_baja|fallback:"
+                    class="app-input mt-1 w-full rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-slate-500 text-xs cursor-not-allowed focus:outline-none" type="text" disabled readonly>
+                </label>
+              </div>
+
+            </div>
+          </div>
+        `;
+        rcg.hydrate(element, {
+          users,
+          texto,
+          deleteUser: (id, index) => {
+            alert(`Eliminar usuario con ID: ${id} en el índice: ${index}`);
+          },
+          saveUser: (id, index) => {
+            alert(`Guardar usuario con ID: ${id} en el índice: ${index}`);
+          } 
+				});
+      }
+
+      function fillGridComponent(element, users, usersIds, texto){
+        element.innerHTML = `
+          <p class="text-gray-800 border border-gray-300 px-2 py-1 rounded-md mb-2">${texto}</p>
+          <div class="overflow-auto rounded-xl border border-slate-200 mt-2 p-4">
+            <table class="min-w-full divide-y divide-slate-200 text-xs">
+              <thead class="bg-slate-50 text-slate-600">
+                <tr>
+                  <th class="px-3 py-2 text-left font-semibold">ID</th>
+                  <th class="px-3 py-2 text-left font-semibold">NIF</th>
+                  <th class="px-3 py-2 text-left font-semibold">Nombre</th>
+                  <th class="px-3 py-2 text-left font-semibold">Descripción</th>
+                  <th class="px-3 py-2 text-left font-semibold">Alta</th>
+                  <th class="px-3 py-2 text-left font-semibold">Baja</th>
+                </tr>
+              </thead>
+              <tbody
+                data-each="user in users"
+                class="divide-y divide-slate-100 bg-white" 
+                data-bind="class: divide-y divide-slate-100 bg-white">
+                <tr>
+                  <td class="px-3 py-2 font-semibold text-slate-700" data-bind="user.id"></td>
+                  <td class="px-3 py-2 text-slate-700" data-bind="user.nif"></td>
+                  <td class="px-3 py-2 text-slate-900" data-bind="user.nombre"></td>
+                  <td class="px-3 py-2 text-slate-900" data-bind="user.descripcion"></td>
+                  <td class="px-3 py-2 text-slate-600 text-center"
+                    data-bind="user.fecha_de_alta | fallback:-"></td>
+                  <td class="px-3 py-2 text-slate-600 text-center"
+                    data-bind="user.fecha_de_baja | fallback:-">                    
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="p-4 text-sm text-slate-500" data-if="users.length === 0">
+              No hay usuarios para mostrar.
+            </div>
+          </div>
+          `;
+        rcg.hydrate(element, {
+          users,
+          texto,
+          deleteUser: (id, index) => {
+            alert(`Eliminar usuario con ID: ${id} en el índice: ${index}`);
+          }
+				});
+      }
+
+      function appendEntry(value, options = {}){
+        const container = document.getElementById('ai-response-container');
+        if (!container) return;
+        const { action, texto, error, userIds, usersData, steps } = value || {};
+        const errorEntry = options?.type === 'error';
+        const textEntry = options?.type === 'text';
+        const confirmationEntry = options?.type === 'confirmation';
+        const inputPromptEntry = options?.type === 'input_prompt';
+        const entry = document.createElement('div');
+        if (errorEntry) {
+          entry.className = 'text-red-500 border border-red-500 px-2 py-1 rounded-md mb-2';
+          entry.innerHTML = String(value);
+        } else if (textEntry) {
+          entry.className = 'text-gray-800 border border-gray-300 px-2 py-1 rounded-md mb-2';
+          entry.innerHTML = String(value);
+        } else if (confirmationEntry) {
+          fillConfirmationComponent(entry, value);
+        } else if(inputPromptEntry) {
+          fillInputPromptEntry(entry, value, options);
+        } else {
+          if( action === 'card') {
+            fillCardComponent(entry, usersData, userIds, texto);
+          }
+          else if (action === 'grid') {
+            fillGridComponent(entry, usersData, userIds, texto);
+          }
+          else{
+            entry.className = 'text-gray-800 border border-gray-300 px-2 py-1 rounded-md mb-2';
+            entry.innerHTML = String(texto);
+          }
+        }        
+        container.appendChild(entry);
+        return entry;
+      }
+
+      function handlePromptKeyDown(eventData) {
+        const ev = eventData.ev || eventData;
+        if (ev.key === 'Enter' && !ev.shiftKey) {
+          ev.preventDefault();
+          callAgent();
+        }
+      }
+
+      function updateStateFormField(eventData) {
+        const [field] = eventData.arg;
+        const value = eventData.ev?.target?.value ?? '';
+        if (!(field in estado.form)) return;
+        estado.form[field] = value;
+      }
+
+      function showPrompt() {
+        clearAiResponseContainer();
+        estado.ready = false;
+        const html = `
+        <div class="font-mono whitespace-pre-wrap text-xs text-gray-700">
+          ${rcg.ai.gemini.chatPrompt}
+        </div>`;
+        appendEntry(html, { type: 'text' });
+      }
+
+      function showPromptList() {
+        const promptList = [
+          '¿Qué sabes hacer?',
+          'Quiero borrar todo',
+          'El usuario 3 tiene acciones pendientes?',
+          'Quiero actualizar un usuario con id conocido',
+          'Borra el usuario 5', 
+          'Muestra la lista de usuarios',
+          'Muestra los datos del usuario 3',
+          'Haz un resumen de los tipos de usuarios',
+          'Muestra los usuarios con id par y ordenalos descendentemente',
+          'Quiero buscar por id'
+        ];
+        const html = promptList.map((prompt, i) => {
+          return `
+            <div class="flex gap-1 mb-1 p-2 rounded-2xl hover:bg-gray-100">
+              <div class="inline-flex flex-1">${prompt}</div> 
+              <button 
+                class="inline-flex bg-blue-500 text-white px-2 py-1 rounded text-xs cursor-pointer" 
+                on-click="selectPrompt:${i}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+                  <path d="M5 12h14" />
+                  <path d="m12 5 7 7-7 7" />
+                </svg>
+
+
+              </button>
+            </div>
+          `;
+        }).join('');
+        clearAiResponseContainer();
+        estado.ready = false;
+        const element = appendEntry(html, { type: 'text' });
+        rcg.hydrate(element, {
+          selectPrompt : (eventData) => {
+            estado.form.prompt = promptList[~~eventData.arg[0]];
+            callAgent();
+          }
+        });
+      }
+
+      function toggleVoiceInput(eventData) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+          alert("Tu navegador no soporta el reconocimiento de voz nativo.");
+          return;
+        }
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'es-ES';
+        recognition.interimResults = false;
+        
+        recognition.onstart = () => eventData.el.classList.add('text-red-500', 'animate-pulse', 'bg-red-50');
+        recognition.onerror = () => eventData.el.classList.remove('text-red-500', 'animate-pulse', 'bg-red-50');        
+        recognition.onresult = (event) => estado.form.prompt = event.results[0][0].transcript;
+        recognition.onend = () => {
+          estado.voiceInputActive = false;
+          eventData.el.classList.remove('text-red-500', 'animate-pulse', 'bg-red-50');
+          callAgent();
+        };
+        recognition.start();
+        estado.voiceInputActive = true;
+      }
+
+      rcg.onReady(() => {
+        rcg.hydrate(document, {
+          estado,
+          callAgent,
+          resetUI,
+          updateStateFormField,
+          handlePromptKeyDown,
+          showPrompt,
+          showPromptList,
+          toggleVoiceInput
+        });
+      });
+
+    })();
+  </script>
+</body>
+
+</html>
