@@ -803,7 +803,8 @@ rcg.ai.gemini = {
     1. Analiza la petición y llama a las funciones necesarias cuando corresponda.
     2. Si falta un dato obligatorio (como un NIF) o vas a realizar una acción destructiva (borrar), usa obligatoriamente 'requestMissingData' o 'requestConfirmation' y espera respuesta. No uses 'requestMissingData' para acciones completas.
     3. Las palabras tipo, categoría, agrupación o rol se refieren a la propiedad "descripcion" de los usuarios.
-    4. Si la petición implica resúmenes, agrupaciones o estadísticas, asigna action: "resumen", deja "userIds" y "usersData" vacíos, y redacta el texto en formato HTML con listas.
+    4. Si la petición implica resúmenes, agrupaciones o estadísticas, asigna action: "resumen", deja "userIds" y "usersData" vacíos.
+    5. Si en el texto tienes que enumerar elementos u opciones puedes utilizar HTML, específicamente <ul> y <li>.
 
     REGLA ABSOLUTA DE SALIDA:
     - Tu respuesta debe ser EXCLUSIVAMENTE un objeto JSON válido, comenzando con '{' y terminando con '}'. 
@@ -826,7 +827,7 @@ rcg.ai.gemini = {
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     let applyDelay = true;
 
-    const safeUsers = STATIC_USERS;
+    const safeUsers = options?.users || [];
 
     const notify = (value, extra = {}) => options?.log?.(value, extra );
     const notifyloading = () => notify('', {'type': 'loading'});
@@ -978,34 +979,6 @@ rcg.ai.gemini = {
         }
       ]
     }];
-
-    // const systemText = `
-    //   Eres un asistente experto en gestión de usuarios. 
-    //   Tu objetivo es procesar la petición del usuario utilizando herramientas disponibles.
-      
-    //   FLUJO:
-    //   1. Analiza la petición.
-    //   2. Llama a las funciones necesarias.
-    //   3. Al terminar, responde SIEMPRE con el formato JSON final detallado abajo.
-      
-    //   IMPORTANTE: 
-    //   1. Si para continuar necesitas un dato obligatorio que el usuario no ha proporcionado (como un NIF o un motivo), 
-    //      o si vas a realizar una acción crítica/destructiva (como borrar un usuario), usa obligatoriamente la función 'requestMissingData' o 'requestConfirmation' 
-    //      y espera su respuesta antes de avanzar. Termina si no hay respuesta del usuario o cancela. Utiliza 'requestMissingData' UNICAMENTE para solicitar valores NO una acción completa.
-    //   2. Las palabras tipo|categoria|agrupación|rol y similares, generamente se refieren a la propiedad "descripcion" de los usuarios.
-    //   3. No genereres NUNCA '''json''', '''xml''' ni otros bloques de código en la respuesta final. Solo JSON plano.
-    //   4. Ejecuta funciones de forma secuencial y estricta. No realices llamada a funciones en paralelo.
-    //   5. REGLA ABSOLUTA DE SALIDA: Todo texto conversacional, saludo, explicación de herramientas o listado de ejemplos DEBE ir estrictamente dentro de la propiedad "texto" del JSON. Está COMPLETAMENTE PROHIBIDO escribir texto plano fuera del objeto JSON. El primer carácter de tu respuesta debe ser '{' y el último '}'.      6. Resumenes|agupaciones|estadísticas|información la acción será resumen y el formato del texto será html con listas. UserData y userIds array vacío.
-      
-    //   FORMATO DE RESPUESTA FINAL (JSON):
-    //   {
-    //     "action": "card|grid|resumen|ninguna",
-    //     "userIds": [],
-    //     "usersData": [],
-    //     "texto": "Aquí metes absolutamente todo el texto, saludos, listas de ejemplos o explicaciones para el usuario.",
-    //     "steps": []
-    //   }
-    // `;
 
     let history = [
       { 

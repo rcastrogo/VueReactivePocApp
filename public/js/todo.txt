@@ -1,0 +1,138 @@
+Enfoque A: 
+Si los datos del array YA SON nodos DOM (HTMLElement)
+Si el array items contiene instancias reales del DOM, puedes aprovechar que al 
+hacer appendChild de un nodo que ya está insertado en el DOM, 
+el navegador no lo recrea, solo lo mueve de posición.
+
+function createRepeater(task) {
+  const { el, children, itemName, ctx, reactive, dataSource } = task;
+
+  const render = (items = []) => {
+    // 1. Guardar conjunto de nodos que deben permanecer
+    const newNodes = new Set();
+
+    items.forEach((item, index) => {
+      let node;
+      
+      if (item instanceof Node) {
+        // Es un nodo DOM real preexistente
+        node = item;
+      } else {
+        // Es un objeto de datos normal
+        // (Aquí podrías implementar un mapa de caché si los ítems tienen id)
+        const clone = children[0].cloneNode(true);
+        const data = { [itemName]: item, index };
+        node = hydrate(clone, { ...ctx, ...data });
+      }
+
+      newNodes.add(node);
+      el.appendChild(node); // Si ya existía, el DOM solo lo reordena
+    });
+
+    // 2. Limpiar solo los nodos hijos que ya no están en la lista
+    Array.from(el.childNodes).forEach(child => {
+      if (!newNodes.has(child)) {
+        child.remove();
+      }
+    });
+  };
+
+  if (reactive) {
+    effect(() => render(resolve(dataSource, ctx)));
+    return;
+  }
+  render(dataSource);
+}
+
+Enfoque B: 
+Reutilización por Clave (Keyed Reconciliation)
+Si los elementos son objetos con identificadores (user.id), 
+puedes cachear los nodos DOM montados mediante 
+un Map para reutilizar el fragmento HTML e hidratación previos:
+
+function createRepeater(task) {
+  const { el, children, itemName, ctx, reactive, dataSource } = task;
+  
+  // Caché de nodos montados: Map<key, HTMLElement>
+  const nodeCache = new Map();
+
+  const render = (items = []) => {
+    const currentKeys = new Set();
+
+    items.forEach((item, index) => {
+      // Determinar la clave única (ej. item.id o el propio objeto)
+      const key = item?.id ?? item; 
+      currentKeys.add(key);
+
+      let instance = nodeCache.get(key);
+
+      if (!instance) {
+        // Crear e hidratar solo si es un ítem nuevo
+        const fragment = document.createDocumentFragment();
+        children.forEach(node => {
+          const clone = node.cloneNode(true);
+          const data = { [itemName]: item, index };
+          fragment.appendChild(hydrate(clone, { ...ctx, ...data }));
+        });
+        
+        instance = { el: fragment.firstElementChild, fragment };
+        nodeCache.set(key, instance);
+        el.appendChild(instance.fragment);
+      } else {
+        // Reordenar en el DOM si ya existía sin volver a hidratar
+        el.appendChild(instance.el);
+      }
+    });
+
+    // Eliminar del DOM y de la caché los ítems borrados
+    for (const [key, instance] of nodeCache.entries()) {
+      if (!currentKeys.has(key)) {
+        instance.el.remove();
+        nodeCache.delete(key);
+      }
+    }
+  };
+
+  if (reactive) {
+    effect(() => render(resolve(dataSource, ctx)));
+    return;
+  }
+  render(dataSource);
+}
+
+Enfoque C:
+Registrar la acción personalizada
+Puedes definir la acción mountNodes (o el nombre que prefieras) utilizando rcg.registerAction:
+
+rcg.registerAction('mountNodes', (el, context, resolvedArgs) => {
+  // 1. Obtener la lista de nodos DOM resuelta desde el argumento (ej: $listaNodos)
+  const nodes = resolvedArgs.arg[0];
+
+  if (!Array.isArray(nodes)) return;
+
+  // Creamos un Set para búsquedas O(1) de los nodos que deben permanecer
+  const validNodes = new Set(nodes.filter(n => n instanceof Node));
+
+  // 2. Insertar o reordenar los nodos en el contenedor.
+  // appendChild MUEVE el nodo si ya está insertado, NO lo destruye ni lo recrea.
+  nodes.forEach(node => {
+    if (node instanceof Node) {
+      el.appendChild(node);
+    }
+  });
+
+  // 3. Eliminar únicamente los hijos del contenedor que ya no están en la lista
+  Array.from(el.childNodes).forEach(child => {
+    if (!validNodes.has(child)) {
+      child.remove();
+    }
+  });
+});
+
+Uso en el HTML
+En la plantilla basta con colocar un contenedor con la directiva data-bind 
+haciendo uso de invoke y pasando el nombre de la propiedad del estado 
+precedido por $ para que resolveArgs la interprete como reactiva
+
+<!-- En el HTML -->
+<div data-bind="invoke:mountNodes:$misElementosDom"></div>

@@ -98,7 +98,7 @@
               <button type="button" on-click="sendPromptToAI"
                 class="tool-bar-button border-slate-200 self-end sm:self-auto shrink-0">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6">
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 sm:size-6">
                   <path
                     d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" />
                   <path d="M20 2v4" />
@@ -109,7 +109,7 @@
               <button type="button" on-click="sendPromptToAgent"
                 class="tool-bar-button border-slate-200 self-end sm:self-auto shrink-0">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6">
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 sm:size-6">
                   <path d="M12 6V2H8" />
                   <path d="M15 11v2" />
                   <path d="M2 12h2" />
@@ -122,10 +122,37 @@
               <button type="button" on-click="reloadUsers"
                 class="tool-bar-button border-slate-200 self-end sm:self-auto shrink-0">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6">
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 sm:size-6">
                   <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                   <path d="M3 3v5h5" />
                 </svg>
+              </button>
+              <button type="button" 
+                on-click="toggleVoiceInput" 
+                title="Dictar por voz"
+                class="tool-bar-button border-slate-200 self-end sm:self-auto shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                  class="size-4 sm:size-6">
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                  <path d="M19 10v1a7 7 0 0 1-14 0v-1"/>
+                  <line x1="12" x2="12" y1="19" y2="22"/>
+                </svg>
+              </button>
+              <button type="button" 
+                on-click="showPromptList:true" 
+                title="Lista de prompts"
+                class="tool-bar-button border-slate-200 self-end sm:self-auto shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
+                    class="size-4 sm:size-6">
+                    <line x1="8" x2="21" y1="6" y2="6"/>
+                    <line x1="8" x2="21" y1="12" y2="12"/>
+                    <line x1="8" x2="21" y1="18" y2="18"/>
+                    <line x1="3" x2="3.01" y1="6" y2="6"/>
+                    <line x1="3" x2="3.01" y1="12" y2="12"/>
+                    <line x1="3" x2="3.01" y1="18" y2="18"/>
+                  </svg>
               </button>
             </div>
           </div>
@@ -296,6 +323,75 @@
         </form>
       </aside>
     </section>
+    <div 
+      data-bind="class:
+        pointer-events-none fixed inset-0 z-100 flex items-center justify-center bg-black/40 overflow-hidden transition-all duration-300
+        hidden ? !estado.voiceInputActive
+      ">
+      <div class="flex flex-col items-center gap-4 text-white">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
+          class="size-16 animate-pulse text-blue-400">
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+          <path d="M19 10v1a7 7 0 0 1-14 0v-1"/>
+          <line x1="12" x2="12" y1="19" y2="22"/>
+        </svg>
+        <span class="text-xl font-medium tracking-wide animate-pulse">
+          Escuchando...
+        </span>
+      </div>
+    </div>
+    <div 
+      data-bind="class:
+        fixed inset-0 z-100 flex items-center justify-center bg-black/60 overflow-hidden transition-all duration-300
+        hidden ? !estado.promptList.visible
+      ">
+        <div class="flex flex-col w-full mx-[10%] bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden">
+
+          <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-slate-50/50">
+            <h3 class="text-sm font-semibold text-slate-800">Seleccionar Prompt</h3>
+            <button 
+              type="button" 
+              on-click="showPromptList:false" 
+              class="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-md"
+              aria-label="Cerrar">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="p-4 overflow-y-auto max-h-64 flex flex-col gap-2">
+            <div 
+              class="flex flex-col gap-2" 
+              data-each="item in estado.promptList.items">
+              <div class="flex items-center gap-2 p-2 border border-slate-200 rounded-lg text-xs hover:bg-slate-50 transition-colors">
+                <span class="flex-1 text-slate-700" data-bind="item"></span>
+                <button 
+                  type="button" 
+                  on-click="seleccionarPrompt:$item" 
+                  class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md flex items-center transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5">
+                    <path d="M5 12h14" />
+                    <path d="m12 5 7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-center px-4 py-3 border-t border-slate-200 bg-slate-50/50">
+            <button 
+              type="button" 
+              on-click="showPromptList:false" 
+              class="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition-colors">
+              Cerrar
+            </button>
+          </div>
+        </div>
+    </div>
   </main>
 
   <script>
@@ -368,6 +464,15 @@
       const API_URL = '/api/users';
       const API_DEV_USERS_URL = ''; //'/js/users.json';
 
+      const promptSamples = [
+        '¿Qué sabes hacer?',
+        'Obtén los detalles de los usuarios con IDs 2, 4 y 6, y luego elimina al usuario con ID 2',
+        'Quiero enviar un email a los usuarios con apellido Sánchez con un mensajede aviso personalizado',
+        'Quiero actualizar la descripción de los usuarios con id par a "READONLY"',
+        'Quiero eliminar a los usuarios con id impar',
+        'Ordena los usuarios por fecha de baja descendente'
+      ];
+
       const estado = reactive({
         loading: false,
         loading_ai_response: false,
@@ -379,6 +484,11 @@
         aiProvider: 'gemini',
         groqModel: 'openai/gpt-oss-20b',
         agentMode: 'handleWithAgent',
+        voiceInputActive: false,
+        promptList: {
+          items: promptSamples,
+          visible: false
+        },
         form: {
           id: '',
           nif: '',
@@ -745,6 +855,39 @@
         }
       }
 
+      function toggleVoiceInput(eventData) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+          alert("Tu navegador no soporta el reconocimiento de voz nativo.");
+          return;
+        }
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'es-ES';
+        recognition.interimResults = false; 
+        recognition.onstart = () => eventData.el.classList.add('text-red-500', 'animate-pulse', 'bg-red-50');
+        recognition.onerror = () => eventData.el.classList.remove('text-red-500', 'animate-pulse', 'bg-red-50');        
+        recognition.onresult = (event) => estado.form.prompt = event.results[0][0].transcript;
+        recognition.onend = () => {
+          estado.voiceInputActive = false;
+          eventData.el.classList.remove('text-red-500', 'animate-pulse', 'bg-red-50');
+        };
+        recognition.start();
+        estado.voiceInputActive = true;
+      }
+
+      showPromptList = (eventData) => {
+        if(typeof eventData === "boolean")
+          estado.promptList.visible = eventData;
+        else
+          estado.promptList.visible = eventData.arg[0] === 'true';
+        document.body.classList.toggle('overflow-hidden', estado.promptList.visible);        
+      };
+
+      seleccionarPrompt = (eventData) => {
+        estado.form.prompt = eventData.arg[0];
+        showPromptList(false);
+      };
+
       rcg.onReady(() => {
         rcg.hydrate(document, {
           estado,
@@ -764,7 +907,10 @@
           nuevoUsuario,
           guardarUsuario,
           eliminarUsuario,
-          alternarEstado
+          alternarEstado,
+          toggleVoiceInput,
+          seleccionarPrompt,
+          showPromptList,
         });
         recargarUsuarios();
       });

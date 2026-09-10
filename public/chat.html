@@ -12,10 +12,6 @@
   <script src="/js/reactivity.global.js"></script>
   <script src="/js/lib.js"></script>
   <script src="/js/components_02.js"></script>
-  <script type="module">
-    import STATIC_USERS from '/js/users.json' with { type: 'json' };
-    window.STATIC_USERS = STATIC_USERS;
-  </script>
   <script src="/js/ai-gemini.js"></script>  
 </head>
 
@@ -102,45 +98,47 @@
 
     <section class="p-6">
       <div class="mx-auto max-w-3xl">
-        <div
-          class="flex flex-col sm:flex-row items-stretch sm:items-end gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-lg shadow-slate-200/60 focus-within:border-sky-500">
+        <div class="relative flex flex-col sm:flex-row items-stretch sm:items-end gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-lg shadow-slate-200/60 focus-within:border-sky-500">
           <textarea on-input="updateStateFormField:prompt" on-keydown="handlePromptKeyDown"
             data-bind="value:estado.form.prompt"
-            class="w-full flex-1 resize-none border-0 bg-transparent p-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-0"
+            class="w-full flex-1 resize-none border-0 bg-transparent p-2 pb-10 sm:pb-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-0"
             rows="2" placeholder="Escribe tu petición aquí...">
           </textarea>
-          <button type="button" on-click="callAgent"
-            class="tool-bar-button self-end sm:self-auto shrink-0 hover:bg-sky-500">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-6">
-              <path
-                d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" />
-              <path d="M20 2v4" />
-              <path d="M22 4h-4" />
-              <circle cx="4" cy="20" r="2" />
-            </svg>
-          </button>
-          <button type="button" on-click="resetUI"
-            class="tool-bar-button self-end sm:self-auto shrink-0 hover:bg-sky-500">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
-              class="size-6">
-              <path d="M18 6L6 18" />
-              <path d="M6 6l12 12" />
-            </svg>
-          </button>
-          <button type="button" 
-            on-click="toggleVoiceInput" 
-            title="Dictar por voz"
-            class="tool-bar-button self-end sm:self-auto shrink-0 hover:bg-sky-500">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
-              class="size-6">
-              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-              <path d="M19 10v1a7 7 0 0 1-14 0v-1"/>
-              <line x1="12" x2="12" y1="19" y2="22"/>
-            </svg>
-          </button>
+          <div class="absolute bottom-2 right-6 flex items-center gap-1 sm:right-2 sm:static sm:gap-2">
+            <button type="button" on-click="callAgent"
+              class="tool-bar-button p-1 sm:p-2 shrink-0 hover:bg-sky-500">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
+                class="size-4 sm:size-6">
+                <path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" />
+                <path d="M20 2v4" />
+                <path d="M22 4h-4" />
+                <circle cx="4" cy="20" r="2" />
+              </svg>
+            </button>
+            <button type="button" on-click="resetUI"
+              class="tool-bar-button p-1 sm:p-2 shrink-0 hover:bg-sky-500">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
+                class="size-4 sm:size-6">
+                <path d="M18 6L6 18" />
+                <path d="M6 6l12 12" />
+              </svg>
+            </button>
+            <button type="button" 
+              on-click="toggleVoiceInput" 
+              title="Dictar por voz"
+              class="tool-bar-button p-1 sm:p-2 shrink-0 hover:bg-sky-500">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" 
+                class="size-4 sm:size-6">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                <path d="M19 10v1a7 7 0 0 1-14 0v-1"/>
+                <line x1="12" x2="12" y1="19" y2="22"/>
+              </svg>
+            </button>
+          </div>
+
         </div>
       </div>
     </section>
@@ -182,6 +180,12 @@
         }
       });
 
+      const API_DEV_USERS_URL = '/js/users.json';
+      let users = null;
+      async function fetchUsers() {
+        return users || (users = await rcg.http.get(API_DEV_USERS_URL));
+      }
+
       async function callAgent() {
         clearAiResponseContainer();
         if (!estado.form.prompt?.trim()){
@@ -193,6 +197,7 @@
           estado.ready = false;
           estado.disabled = true;
           estado.loading = true;
+          const users = await fetchUsers();
           const provider = estado.aiProvider || 'gemini';
           const fn = rcg.ai[provider].handleChat;
           const result = await fn(
@@ -202,7 +207,8 @@
                 estado.loading = options?.type === 'loading';
                 if(estado.loading) return;               
                 appendEntry(value, options);
-              }
+              },
+              users
             }
           );
           appendEntry(result || {});          
@@ -526,12 +532,22 @@
         estado.form[field] = value;
       }
 
+      function escapeHtml(rawText) {
+        return String(rawText || '')
+          .replaceAll('&', '&amp;')
+          .replaceAll('"', '&quot;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll("'", '&#39;');
+      }
+
       function showPrompt() {
         clearAiResponseContainer();
         estado.ready = false;
+        const prompt = escapeHtml(rcg.ai.gemini.chatPrompt);
         const html = `
         <div class="font-mono whitespace-pre-wrap text-xs text-gray-700">
-          ${rcg.ai.gemini.chatPrompt}
+          ${prompt}
         </div>`;
         appendEntry(html, { type: 'text' });
       }
