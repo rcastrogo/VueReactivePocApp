@@ -3,10 +3,12 @@
 ## enlace
 
 - https://vue-reactive-poc-app.vercel.app/
+
+## videos
 - [Youtube Agente IA sobre lista de usuarios - I](https://www.youtube.com/watch?v=86RfvkpZUPk)
 - [Youtube Agente IA sobre lista de usuarios - II](https://www.youtube.com/watch?v=NdgJ_eIaT_c)
 
-## otros enlaces
+## otros enlaces a otras APPs
 
 - https://rcg-vanillajs-lib.vercel.app/
 - https://rcg-framework.vercel.app/
