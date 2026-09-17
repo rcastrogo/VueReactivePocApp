@@ -62,7 +62,7 @@
     </div>
 
     <section class="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
-      <section class="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur-sm">
+      <section class="rounded-2xl overflow-auto border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur-sm">
         <header class="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
             <p class="text-xs font-semibold tracking-[0.18em] text-slate-500">USUARIOS</p>
@@ -244,20 +244,20 @@
                 on-change="setGroqModel:openai/gpt-oss-120b" class="accent-slate-800" />
               GPT OSS 120B
             </label>
-            <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+            <label class="hidden items-center gap-2 text-sm text-slate-700 cursor-pointer">
               <input type="radio" name="groqModel" value="llama-3.1-8b-instant"
                 on-change="setGroqModel:llama-3.1-8b-instant" class="accent-slate-800" />
               Llama 3.1 8B
             </label>
-            <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+            <label class="hidden items-center gap-2 text-sm text-slate-700 cursor-pointer">
               <input type="radio" name="groqModel" value="llama-3.3-70b-versatile"
                 on-change="setGroqModel:llama-3.3-70b-versatile" class="accent-slate-800" />
               Llama 3.3 70B
             </label>
             <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-              <input type="radio" name="groqModel" value="qwen/qwen3.6-27b" on-change="setGroqModel:qwen/qwen3.6-27b"
+              <input type="radio" name="groqModel" value="qwen/qwen3.8-27b" on-change="setGroqModel:qwen/qwen3.8-27b"
                 class="accent-slate-800" />
-              Qwen 3.6 27B
+              Qwen 3.8 27B
             </label>
           </div>
 
@@ -466,6 +466,8 @@
 
       const promptSamples = [
         '¿Qué sabes hacer?',
+        'Busca los nombres de los integrantes de Leño y comprueba cuantos de ellos se encuentran entre los de los usuarios',
+        'Alguno de los usuarios ha formado parte de "Leño"',
         'Obtén los detalles de los usuarios con IDs 2, 4 y 6, y luego elimina al usuario con ID 2',
         'Quiero enviar un email a los usuarios con apellido Sánchez con un mensajede aviso personalizado',
         'Quiero actualizar la descripción de los usuarios con id par a "READONLY"',
