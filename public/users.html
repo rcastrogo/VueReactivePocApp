@@ -75,6 +75,54 @@
         </header>
 
         <div class="border-t my-2 border-slate-300"></div>
+        <header class="">
+          <h2 data-bind="estado.aiProvider | upper" class="text-xl font-bold text-slate-900 mb-2"></h2>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" on-click="setAIProvider:gemini" data-bind="class:
+                tool-bar-button border-slate-200
+                bg-gray-300 ? estado.aiProvider === 'gemini'">Gemini</button>
+            <button type="button" on-click="setAIProvider:openrouter" data-bind="class:
+                tool-bar-button border-slate-200
+                bg-gray-300 ? estado.aiProvider === 'openrouter'">OpenRouter</button>
+            <button type="button" on-click="setAIProvider:groq" data-bind="class:
+                tool-bar-button border-slate-200
+                bg-gray-300 ? estado.aiProvider === 'groq'">Groq</button>
+            <button type="button" on-click="setAIProvider:azure" data-bind="class:
+                tool-bar-button border-slate-200
+                bg-gray-300 ? estado.aiProvider === 'azure'">Azure</button>
+          </div>
+
+          <div class="flex flex-wrap gap-2 p-2" data-if="isGroq">
+            <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <input type="radio" name="groqModel" value="openai/gpt-oss-20b"
+                on-change="setGroqModel:openai/gpt-oss-20b" checked class="accent-slate-800" />
+              GPT OSS 20B
+            </label>
+            <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <input type="radio" name="groqModel" value="openai/gpt-oss-120b"
+                on-change="setGroqModel:openai/gpt-oss-120b" class="accent-slate-800" />
+              GPT OSS 120B
+            </label>
+            <label class="hidden items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <input type="radio" name="groqModel" value="llama-3.1-8b-instant"
+                on-change="setGroqModel:llama-3.1-8b-instant" class="accent-slate-800" />
+              Llama 3.1 8B
+            </label>
+            <label class="hidden items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <input type="radio" name="groqModel" value="llama-3.3-70b-versatile"
+                on-change="setGroqModel:llama-3.3-70b-versatile" class="accent-slate-800" />
+              Llama 3.3 70B
+            </label>
+            <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <input type="radio" name="groqModel" value="qwen/qwen3.8-27b" on-change="setGroqModel:qwen/qwen3.8-27b"
+                class="accent-slate-800" />
+              Qwen 3.8 27B
+            </label>
+          </div>
+
+        </header>
+        <div class="border-t my-2 border-slate-300"></div>
+        
         <div
           class=" flex flex-col sm:flex-row items-stretch sm:items-end gap-2 p-2 rounded-xl border border-slate-200 bg-white">
           <textarea on-input="actualizarCampo:prompt" on-keydown="handlePromptKeyDown"
@@ -215,53 +263,6 @@
       </section>
 
       <aside class="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur-sm">
-
-        <header class="mb-4 border-b pb-2">
-          <h2 data-bind="estado.aiProvider | upper" class="text-xl font-bold text-slate-900 border-b mb-2"></h2>
-          <div class="flex flex-wrap gap-2">
-            <button type="button" on-click="setAIProvider:gemini" data-bind="class:
-                tool-bar-button border-slate-200
-                bg-gray-300 ? estado.aiProvider === 'gemini'">Gemini</button>
-            <button type="button" on-click="setAIProvider:openrouter" data-bind="class:
-                tool-bar-button border-slate-200
-                bg-gray-300 ? estado.aiProvider === 'openrouter'">OpenRouter</button>
-            <button type="button" on-click="setAIProvider:groq" data-bind="class:
-                tool-bar-button border-slate-200
-                bg-gray-300 ? estado.aiProvider === 'groq'">Groq</button>
-            <button type="button" on-click="setAIProvider:azure" data-bind="class:
-                tool-bar-button border-slate-200
-                bg-gray-300 ? estado.aiProvider === 'azure'">Azure</button>
-          </div>
-
-          <div class="flex flex-wrap gap-2 p-2" data-if="isGroq">
-            <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-              <input type="radio" name="groqModel" value="openai/gpt-oss-20b"
-                on-change="setGroqModel:openai/gpt-oss-20b" checked class="accent-slate-800" />
-              GPT OSS 20B
-            </label>
-            <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-              <input type="radio" name="groqModel" value="openai/gpt-oss-120b"
-                on-change="setGroqModel:openai/gpt-oss-120b" class="accent-slate-800" />
-              GPT OSS 120B
-            </label>
-            <label class="hidden items-center gap-2 text-sm text-slate-700 cursor-pointer">
-              <input type="radio" name="groqModel" value="llama-3.1-8b-instant"
-                on-change="setGroqModel:llama-3.1-8b-instant" class="accent-slate-800" />
-              Llama 3.1 8B
-            </label>
-            <label class="hidden items-center gap-2 text-sm text-slate-700 cursor-pointer">
-              <input type="radio" name="groqModel" value="llama-3.3-70b-versatile"
-                on-change="setGroqModel:llama-3.3-70b-versatile" class="accent-slate-800" />
-              Llama 3.3 70B
-            </label>
-            <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-              <input type="radio" name="groqModel" value="qwen/qwen3.8-27b" on-change="setGroqModel:qwen/qwen3.8-27b"
-                class="accent-slate-800" />
-              Qwen 3.8 27B
-            </label>
-          </div>
-
-        </header>
 
         <header class="mb-4">
           <p class="text-xs font-semibold tracking-[0.18em] text-slate-500">DETALLE</p>
@@ -467,7 +468,6 @@
       const promptSamples = [
         '¿Qué sabes hacer?',
         'Busca los nombres de los integrantes de Leño y comprueba cuantos de ellos se encuentran entre los de los usuarios',
-        'Alguno de los usuarios ha formado parte de "Leño"',
         'Obtén los detalles de los usuarios con IDs 2, 4 y 6, y luego elimina al usuario con ID 2',
         'Quiero enviar un email a los usuarios con apellido Sánchez con un mensajede aviso personalizado',
         'Quiero actualizar la descripción de los usuarios con id par a "READONLY"',
@@ -603,7 +603,10 @@
           );
           const { action, userIds, usersData, text, steps } = result || {};
           if (action && userIds && userIds.length) {
-            estado.users = estado.users.filter(u => userIds.includes(Number(u.id)));
+            const usersMap = new Map(estado.users.map(u => [Number(u.id), u]));
+            estado.users = userIds
+              .map(id => usersMap.get(Number(id)))
+              .filter(Boolean);
           }
         } catch (error) {
           console.error('No se pudo atender la petición del agente:', error);
@@ -656,7 +659,10 @@
         switch (result.action) {
           case 'modificar': {
             if (ids.length > 0) {
-              estado.users = estado.users.filter(u => ids.includes(Number(u.id)));
+              const usersMap = new Map(estado.users.map(u => [Number(u.id), u]));
+              estado.users = ids
+                .map(id => usersMap.get(Number(id)))
+                .filter(Boolean);
             }
             if (Array.isArray(result.usersData) && result.usersData.length > 0) {
               result.usersData.forEach(userMod => {

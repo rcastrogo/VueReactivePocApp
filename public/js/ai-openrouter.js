@@ -36,6 +36,7 @@ rcg.ai.openrouter = {
       - Añade una sección para el estado del usuario ("${estadoTexto}").
       - Añade una sección con un texto resumen del usuario teniendo en cuenta sus propiedades
       - Añade una sección con el significado, breve, de su nombre y su origen etimológico (si es posible deducirlo).
+      - Si el nombre del usuario es de algún personaje relacionado con la música, menciónalo brevemente.
     `;
     
     const payload = {
