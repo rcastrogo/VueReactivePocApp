@@ -103,7 +103,7 @@ export default async function handler(req, res) {
     notFound, 
     methodNotAllowed, 
     serverError 
-  } = responseWrapper.wrapp(res);  
+  } = responseWrapper.wrap(res);  
 
   try {
     // =================================================================================

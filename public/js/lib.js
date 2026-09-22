@@ -75,6 +75,10 @@ const rcg = (function () {
     class: (el, value) => el.className = value ?? '',
     show: (el, value) => el.style.display = value ? '' : 'none', // Visibility toggle
     attr: (el, value, prop) => {                                 // attr.href, attr.disabled
+      if(value === 'undefined' || value === undefined){
+        el.removeAttribute(prop);
+        return;
+      }
       if (value === false || value === null) el.removeAttribute(prop);
       else el.setAttribute(prop, value === true ? '' : value);
     },

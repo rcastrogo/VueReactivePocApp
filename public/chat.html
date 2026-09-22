@@ -65,6 +65,58 @@
               </svg>
               <span class="hidden sm:inline ml-2">Lista de Prompts</span>
             </button>
+
+            <!-- Botón: login/logout -->
+            <button type="button" 
+              on-click="handleLoginLogout"
+              data-bind="attr.title:estado.user | if:Cerrar sesión:Iniciar sesión"
+              class="inline-flex items-center justify-center p-2.5 sm:px-4 sm:py-2 rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 font-medium text-sm">
+              <svg data-if="estado.user" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              <svg data-if="!estado.user" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                <polyline points="10 17 15 12 10 7" />
+                <line x1="15" y1="12" x2="3" y2="12" />
+              </svg>
+              <span class="hidden sm:inline ml-2" data-bind="text:estado.user | if:Cerrar sesión:Iniciar sesión"></span>
+            </button>
+          </div>
+
+          <!-- Información del usuario logado -->
+          <div data-if="estado.user" class="mt-4 mx-auto w-full max-w-xl">
+            <div class="mx-auto flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm xs:w-1/2  sm:w-full transition-all duration-200">
+              <!-- Avatar -->
+              <img
+                data-bind="
+                  attr.src:estado.user.picture | safeAttribute;
+                  attr.alt:estado.user.name"
+                class="h-14 w-14 shrink-0 rounded-full object-cover ring-1 ring-slate-200 sm:h-16 sm:w-16"
+                alt="Foto de perfil"
+              />
+              <!-- Información -->
+              <div class="min-w-0 flex-1 text-left">
+                <h2
+                  data-bind="text:estado.user.name"
+                  class="truncate text-base font-semibold text-slate-900 sm:text-lg">
+                </h2>
+                <p
+                  data-bind="text:estado.user.email"
+                  class="truncate text-sm text-slate-500">
+                </p>
+                <p class="mt-1 text-xs text-slate-400">
+                  ID:
+                  <span
+                    data-bind="text:estado.user.id"
+                    class="font-medium text-slate-500">
+                  </span>
+                </p>
+              </div>              
+            </div>
           </div>
 
         </div>        
@@ -177,7 +229,8 @@
         voiceInputActive: false,
         form: {
           prompt: '',
-        }
+        },
+        user: null,
       });
 
       const API_DEV_USERS_URL = '/js/users.json';
@@ -617,7 +670,38 @@
         estado.voiceInputActive = true;
       }
 
+      async function loadCurrentUser() {
+        try {
+          const response = await fetch('/api/auth/me');
+          if (response.status === 401) {
+            estado.user = null;
+            return;
+          }
+          if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+          }
+          const data = await response.json();
+          estado.user = data.user || null;
+        } catch (error) {
+          console.error('Error al comprobar la sesión:', error);
+          estado.user = null;
+        }
+      }
+
+      function handleLoginLogout() {
+        if (estado.user) {
+          fetch('/api/auth/logout', { method: 'POST' })
+            .then(() => {
+              estado.user = null;
+            })
+            .catch(console.error);
+        } else {
+          window.location.href = '/api/auth/login';
+        }
+      }
+
       rcg.onReady(() => {
+
         rcg.hydrate(document, {
           estado,
           callAgent,
@@ -626,8 +710,12 @@
           handlePromptKeyDown,
           showPrompt,
           showPromptList,
-          toggleVoiceInput
+          toggleVoiceInput,
+          handleLoginLogout
         });
+
+        loadCurrentUser();
+
       });
 
     })();

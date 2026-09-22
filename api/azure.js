@@ -81,7 +81,7 @@ export default async function handler(req, res) {
     ok, 
     methodNotAllowed, 
     serverError 
-  } = responseWrapper.wrapp(res);
+  } = responseWrapper.wrap(res);
 
   try {   
     if (req.method === 'POST') {
