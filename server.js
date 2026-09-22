@@ -9,6 +9,7 @@ import authMeHandler from './api/auth/me.js';
 import authCallbackHandler from './api/auth/callback.js';
 import authLoginHandler from './api/auth/login.js';
 import authLogoutHandler from './api/auth/logout.js';
+import mcpHandler from './api/mcp/mcp.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,6 +21,8 @@ app.all('/api/auth/callback', authCallbackHandler);
 app.all('/api/auth/login', authLoginHandler);
 app.all('/api/auth/logout', authLogoutHandler);
 app.all('/api/auth/me', authMeHandler);
+
+app.all('/api/mcp', mcpHandler); 
 
 app.all('/api/users', usersHandler);
 app.all('/api/gemini', geminiHandler);
