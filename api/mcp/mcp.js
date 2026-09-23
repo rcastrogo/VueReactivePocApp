@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    return res.status(200).end();  
   }
 
   try {
@@ -120,10 +120,17 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'GET') {
-      return res.status(200).json({
-        status: 'online',
-        mcp: 'user-management-mcp',
-      });
+      // Soporte de Server-Sent Events (SSE) según el protocolo MCP
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache, no-transform');
+      res.setHeader('Connection', 'keep-alive');
+      res.write(`event: endpoint\ndata: /api/mcp/mcp?sessionId=stateless\n\n`);
+      res.end();
+      return;
+      // return res.status(200).json({
+      //   status: 'online',
+      //   mcp: 'user-management-mcp',
+      // });
     }
 
     return res.status(405).json({ error: 'Método no permitido' });

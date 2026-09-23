@@ -22,7 +22,7 @@ app.all('/api/auth/login', authLoginHandler);
 app.all('/api/auth/logout', authLogoutHandler);
 app.all('/api/auth/me', authMeHandler);
 
-app.all('/api/mcp', mcpHandler); 
+app.all('/api/mcp/mcp', mcpHandler); 
 
 app.all('/api/users', usersHandler);
 app.all('/api/gemini', geminiHandler);
