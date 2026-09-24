@@ -1,6 +1,9 @@
 // @ts-nocheck
 import express from 'express';
 import usersHandler from './api/users.js';
+import appUserHandler from './api/app_user.js';
+import appSessionHandler from './api/app_session.js';
+import tipoUsuarioHandler from './api/tipo_usuario.js';
 import geminiHandler from './api/gemini.js';
 import openrouterHandler from './api/openrouter.js';
 import groqHandler from './api/groq.js';
@@ -26,6 +29,14 @@ app.all('/api/mcp/mcp', mcpHandler);
 
 app.all('/api/users', usersHandler);
 app.all('/api/users/:id', usersHandler);
+
+app.all('/api/app_user', appUserHandler);
+app.all('/api/app_user/:id', appUserHandler);
+app.all('/api/app_session', appSessionHandler);
+app.all('/api/app_session/:id', appSessionHandler);
+
+app.all('/api/tipo_usuario', tipoUsuarioHandler);
+app.all('/api/tipo_usuario/:id', tipoUsuarioHandler);
 
 app.all('/api/gemini', geminiHandler);
 app.all('/api/openrouter', openrouterHandler);
