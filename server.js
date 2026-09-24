@@ -25,6 +25,8 @@ app.all('/api/auth/me', authMeHandler);
 app.all('/api/mcp/mcp', mcpHandler); 
 
 app.all('/api/users', usersHandler);
+app.all('/api/users/:id', usersHandler);
+
 app.all('/api/gemini', geminiHandler);
 app.all('/api/openrouter', openrouterHandler);
 app.all('/api/groq', groqHandler);

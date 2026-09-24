@@ -1,17 +1,6 @@
 import { userRepository } from '../lib/repo/users.js';
 import { responseWrapper } from '../lib/response.js';
 
-/**
- * Auxiliar para inyectar cabeceras CORS en todas las respuestas
- * @param {import('@vercel/node').VercelResponse} res
- */
-function setCorsHeaders(res) {
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*'); // En producción puedes restringir a tu dominio
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-}
-
 function renderUsersHtml(users) {
   const fn = (user) => {
     const isInactive = Boolean(user.fecha_de_baja);
@@ -86,15 +75,7 @@ function renderUsersHtml(users) {
  * @param {import('@vercel/node').VercelResponse} res
  */
 export default async function handler(req, res) {
-  // =========================================================
-  // Cabeceras CORS
-  // =========================================================
-  setCorsHeaders(res);
-  // =========================================================
-  // Respuesta inmediata para peticiones Preflight CORS
-  // =========================================================
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  
+
   const { 
     ok,
     html: responseHtml,
@@ -102,15 +83,29 @@ export default async function handler(req, res) {
     badRequest, 
     notFound, 
     methodNotAllowed, 
-    serverError 
-  } = responseWrapper.wrap(res);  
+    serverError,
+    setCorsHeaders,
+    optionsOk
+  } = responseWrapper.wrap(res);
+
+  // =========================================================
+  // Cabeceras CORS
+  // =========================================================
+  setCorsHeaders('GET, POST, PUT, DELETE, OPTIONS');
+  // =========================================================
+  // Respuesta inmediata para peticiones Preflight CORS
+  // =========================================================
+  if (req.method === 'OPTIONS') return optionsOk();
 
   try {
     // =================================================================================
     // GET: Obtener todos los usuarios o uno por query params (?id=1)
     // =================================================================================
     if (req.method === 'GET') {
-      const { id, action } = req.query;
+      // Extrae 'id' de query (?id=5) o de params (/5)
+      // @ts-ignore
+      const id = req.query.id || req.params?.id;
+      const { action } = req.query;
       if (id) {
         const [user] = await userRepository.getById(id);
         if (!user) return notFound('Usuario no encontrado');
