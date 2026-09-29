@@ -173,7 +173,7 @@
 			let toastId = 1;
 
 			const tabsJson = JSON.stringify(tabLabels);
-			const optionsJson = JSON.stringify(['Exportar', 'Duplicar', 'Archivar']);
+			const optionsJson = JSON.stringify(['Exportar', 'Duplicar', 'Archivar', 'user/1', 'user', 'session', 'user-type/10', 'user-type']);
 
 			const notificationsLabel = computed(() => ui.notifications ? 'Activadas' : 'Desactivadas');
 
@@ -208,7 +208,7 @@
 				onOptionSelect(e) {
 					ui.lastSelection = e.detail;
 					if(ui.url == '/templates/usuarios.html')
-						ui.url = `/templates/${ui.lastSelection}.html`;
+						ui.url = `/api/entity/${ui.lastSelection.toLowerCase()}?ssr=1`;
 					else
 						ui.url = '/templates/usuarios.html';
 				},

@@ -55,8 +55,16 @@
         const html = await rcg.http.getHtml(requestUrl, { signal: localController.signal });
         if (currentUrl !== requestUrl) return;
         state.status = 'success';
-        state.html = html;
-        queueMicrotask(hydrateLoadedContent);
+
+        if (/<!doctype html>/i.test(html)) {
+          const blobUrl = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+          state.html = `<iframe src="${blobUrl}" sandbox="allow-same-origin allow-scripts" class="w-full h-full"></iframe>`;
+          // Acuérdate de llamar URL.revokeObjectURL(blobUrl) cuando ya no se necesite
+        } else {
+          state.html = html;
+          queueMicrotask(hydrateLoadedContent);
+        }
+        
       } catch (error) {
         if (error?.name === 'AbortError') return;
         setError(error);
@@ -90,7 +98,7 @@
         <div data-if="isLoading">    
           <div data-component="app-spinner" [size]="md" [label]="loadingText"></div>     
         </div>
-        <div data-if="isSuccess" data-bind="html:state.html" data-async-content></div>
+        <div data-if="isSuccess" data-bind="html:state.html" class="w-full h-full" data-async-content></div>
         <div
           data-if="hasError"
           class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
