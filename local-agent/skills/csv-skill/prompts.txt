@@ -1,0 +1,3 @@
+node agent Muestra las estadisticas del fichero datos_prueba.csv utilizando las herramientas.
+node agent Genera datos de prueba en formato csv y muestra una estadística utilizando herramientas. Necesito al menos 15 registros con una cabecera y algún campo nulo. Solo texto plano, no markdown y sin ficheros temporales.
+node agent Crea un archivo CSV con datos de prueba y muestra una estadística utilizando herramientas. Necesito al menos 15 registros con una cabecera y algún campo nulo. IMPORTANTE: No incluyas las filas en el resumen final

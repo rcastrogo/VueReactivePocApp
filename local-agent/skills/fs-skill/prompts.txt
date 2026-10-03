@@ -1,0 +1,10 @@
+node agent cual es la estructura de directorios del sistema
+node agent cual es la estructura de directorios de skills
+node agent muetra la estructura de directorios del sistema en fomato de árbol ascii
+node agent quiero ver la información de sistema de archivo relativa al fichero data-f47ac10b-58cc-4372-a567-0e02b2c3d479.csv en el directorio cs-stat
+node agent quiero ver el contenido del texto, sin markdown, del fichero data-f47ac10b-58cc-4372-a567-0e02b2c3d479.csv en el directorio cs-stat
+node agent Comprueba que existe el directorio cs-stat y muestra su estructura de directorios en caso afirmativo
+node agent Crea un fichero con un resumen de los informes disponibles en el sistema de facturación.
+
+node agent Quiero saber que eventos están disponibles el día 25 de noviembre para el equipo de desarrollo.
+node agent Quiero utilizar el sistema de facturación para generar la remesa del mes de octubre la clave es "sésamo"

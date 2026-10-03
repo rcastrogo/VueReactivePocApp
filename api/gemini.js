@@ -33,7 +33,6 @@ export async function invokeModel(payload) {
     },
     body: JSON.stringify(payload)
   });
-
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(`Gemini API Error (${response.status}): ${errorData?.error?.message || response.statusText}`);

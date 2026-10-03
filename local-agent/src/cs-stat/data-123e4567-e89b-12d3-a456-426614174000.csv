@@ -1,0 +1,16 @@
+id,nombre,edad,ciudad,salario
+1,Ana Gomez,28,Madrid,32000
+2,Carlos Perez,,Barcelona,29500
+3,Maria Lopez,45,Valencia,48000
+4,Juan Ruiz,34,,31000
+5,Lucia Martin,29,Sevilla,27000
+6,Pedro Sanchez,52,Bilbao,
+7,Sofia Gomez,23,Madrid,24000
+8,Jorge Ramirez,,Zaragoza,35000
+9,Elena Torres,38,Malaga,42000
+10,Miguel Angel,41,,39000
+11,Carmen Diaz,30,Valencia,28500
+12,David Moreno,26,Sevilla,
+13,Laura Jimenez,37,Madrid,51000
+14,Javier Navarro,,Barcelona,33000
+15,Beatriz Ruiz,44,Bilbao,46000

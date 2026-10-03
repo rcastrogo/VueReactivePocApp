@@ -1,0 +1,16 @@
+id,nombre,edad,departamento,salario
+1,Juan Pérez,28,Ventas,1500
+2,María Gómez,,Marketing,2200
+3,Carlos Ruiz,35,Ventas,
+4,Ana Torres,42,IT,3100
+5,Pedro Sánchez,30,,1800
+6,Lucía Fernández,25,IT,2500
+7,Jorge Ramírez,,Marketing,2000
+8,Sofía Morales,38,Ventas,2900
+9,Miguel Ángel,45,IT,
+10,Elena Castro,29,,1650
+11,David Ortiz,33,Marketing,2400
+12,Carmen Vega,,IT,3500
+13,Raúl Jiménez,40,Ventas,2100
+14,Patricia Luna,27,Marketing,
+15,Gabriel Silva,36,,2750

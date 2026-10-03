@@ -1,0 +1,16 @@
+id,nombre,edad,departamento,salario
+1,Ana Gomez,28,Ventas,35000
+2,Carlos Perez,,IT,42000
+3,Maria Lopez,34,Marketing,
+4,Juan Rodriguez,45,Ventas,48000
+5,Lucia Fernandez,29,,31000
+6,Pedro Gomez,51,IT,60000
+7,Sofia Martinez,23,Marketing,25000
+8,Miguel Angel,,Ventas,39000
+9,Elena Ruiz,38,IT,
+10,David Sanchez,41,Marketing,46000
+11,Carmen Torres,26,,28000
+12,Jorge Ramirez,33,Ventas,
+13,Laura Diaz,,IT,53000
+14,Roberto Gomez,47,Marketing,49000
+15,Isabel Morales,31,Ventas,34000
