@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Tipos de Usuario</title>
+    <!-- Tabler CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css" rel="stylesheet"/>
+    <!-- Tabler Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet"/>
+</head>
+<body class="theme-light">
+    <div class="page">
+        <!-- Header -->
+        <header class="navbar navbar-expand-md navbar-light d-print-none">
+            <div class="container-xl">
+                <h1 class="navbar-brand navbar-brand-autodark d-none-navbar-horizontal-normal h2 mb-0">
+                    <span class="text-primary me-2"><i class="ti ti-users"></i></span> Gestión de Tipos de Usuario
+                </h1>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="page-wrapper">
+            <div class="container-xl py-4">
+                
+                <!-- Acciones y Filtros -->
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="row g-2 align-items-center">
+                            <div class="col">
+                                <div class="input-icon">
+                                    <span class="input-icon-addon">
+                                        <i class="ti ti-search"></i>
+                                    </span>
+                                    <input type="text" id="searchInput" class="form-control" placeholder="Buscar por NIF, nombre o descripción...">
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <select id="statusFilter" class="form-select">
+                                    <option value="all">Todos los estados</option>
+                                    <option value="active">Activos</option>
+                                    <option value="inactive">Bajas</option>
+                                </select>
+                            </div>
+                            <div class="col-auto">
+                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#userModal" id="btnNewUser">
+                                    <i class="ti ti-plus"></i> Nuevo Tipo de Usuario
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla de Datos -->
+                <div class="card">
+                    <div class="table-responsive">
+                        <table class="table table-vcenter card-table table-striped" id="usersTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>NIF</th>
+                                    <th>Nombre</th>
+                                    <th>Descripción</th>
+                                    <th>Fecha Alta</th>
+                                    <th>Fecha Baja</th>
+                                    <th class="w-1">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <!-- Renderizado dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer d-flex align-items-center">
+                        <p class="m-0 text-muted" id="tableInfo">Mostrando <span>0</span> registros</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Formulario -->
+    <div class="modal modal-blur fade" id="userModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <form id="userForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalTitle">Nuevo Tipo de Usuario</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="userId">
+                        <div class="mb-3">
+                            <label class="form-label required">NIF</label>
+                            <input type="text" class="form-control" id="userNif" required placeholder="Ej: 12345678X">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label required">Nombre</label>
+                            <input type="text" class="form-control" id="userName" required placeholder="Nombre del tipo de usuario">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Descripción</label>
+                            <textarea class="form-control" id="userDesc" rows="3" placeholder="Breve descripción..."></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label required">Fecha Alta</label>
+                                <input type="date" class="form-control" id="userFechaAlta" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Fecha Baja</label>
+                                <input type="date" class="form-control" id="userFechaBaja">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn me-auto" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btnSave">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabler JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
+    <!-- Datos y lógica -->
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

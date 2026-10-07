@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bar El Refugio - La mejor experiencia nocturna</title>
+    <!-- Tabler CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="antialiased">
+    <!-- Navbar -->
+    <header class="navbar navbar-expand-md navbar-light d-print-none sticky-top bg-white shadow-sm">
+        <div class="container-xl">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar-menu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <h1 class="navbar-brand navbar-brand-autodark d-no-navbar-brand pe-0 pe-md-3">
+                <a href="#">
+                    🍸 <strong>Bar El Refugio</strong>
+                </a>
+            </h1>
+            <div class="collapse navbar-collapse" id="navbar-menu">
+                <div class="navbar-nav flex-row">
+                    <a class="nav-link" href="#inicio">Inicio</a>
+                    <a class="nav-link" href="#menu">Menú y Cócteles</a>
+                    <a class="nav-link" href="#reservas">Reservas</a>
+                    <a class="nav-link" href="#contacto">Contacto</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="page">
+        <div class="page-wrapper">
+            <!-- Hero Section -->
+            <section id="inicio" class="hero-section text-white text-center py-5 bg-dark" style="background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=1920&q=80') center/cover;">
+                <div class="container py-5">
+                    <h1 class="display-3 fw-bold mb-3">Bienvenidos a Bar El Refugio</h1>
+                    <p class="lead mb-4">Cócteles artesanales, ambiente inigualable y la mejor música en directo de la ciudad.</p>
+                    <a href="#reservas" class="btn btn-primary btn-lg">Reserva una mesa</a>
+                </div>
+            </section>
+
+            <!-- Main Container -->
+            <div class="container-xl my-5">
+                <!-- Menú Section -->
+                <section id="menu" class="mb-5">
+                    <div class="text-center mb-4">
+                        <h2>Nuestra Carta</h2>
+                        <p class="text-secondary">Descubre nuestros cócteles estrella y tapas exclusivas</p>
+                    </div>
+                    <div id="menu-container" class="row row-cards">
+                        <!-- Dinámico desde JS -->
+                    </div>
+                </section>
+
+                <!-- Reservas Section -->
+                <section id="reservas" class="card mb-5 shadow-sm">
+                    <div class="card-body p-4 p-md-5">
+                        <div class="row align-items-center">
+                            <div class="col-lg-6 mb-4 mb-lg-0">
+                                <h3>Reserva tu Mesa</h3>
+                                <p class="text-secondary">Asegura tu sitio para disfrutar de nuestras noches temáticas y fines de semana especiales.</p>
+                                <ul class="list-unstyled space-y-1">
+                                    <li>✓ Confirmación inmediata</li>
+                                    <li>✓ Sin cargos adicionales</li>
+                                    <li>✓ Atención personalizada</li>
+                                </ul>
+                            </div>
+                            <div class="col-lg-6">
+                                <form id="booking-form">
+                                    <div class="mb-3">
+                                        <label class="form-label">Nombre completo</label>
+                                        <input type="text" class="form-control" id="book-name" required placeholder="Tu nombre">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Fecha y Hora</label>
+                                        <input type="datetime-local" class="form-control" id="book-datetime" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Número de personas</label>
+                                        <input type="number" class="form-control" id="book-guests" min="1" max="12" value="2" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100">Confirmar Reserva</button>
+                                </form>
+                                <div id="booking-alert" class="mt-3"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Contacto Section -->
+                <section id="contacto" class="card mb-5">
+                    <div class="card-body p-4 p-md-5">
+                        <div class="row">
+                            <div class="col-lg-6 mb-4 mb-lg-0">
+                                <h3>Contacto y Ubicación</h3>
+                                <p class="text-secondary">¿Tienes alguna duda o evento privado? Escríbenos.</p>
+                                <p><strong>📍 Dirección:</strong> Calle Principal 123, Centro, Ciudad</p>
+                                <p><strong>📞 Teléfono:</strong> +34 900 123 456</p>
+                                <p><strong>🕒 Horario:</strong> Miércoles a Domingo de 18:00 a 03:00</p>
+                            </div>
+                            <div class="col-lg-6">
+                                <form id="contact-form">
+                                    <div class="mb-3">
+                                        <label class="form-label">Correo electrónico</label>
+                                        <input type="email" class="form-control" id="contact-email" required placeholder="tu@email.com">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Mensaje</label>
+                                        <textarea class="form-control" id="contact-message" rows="3" required placeholder="¿En qué podemos ayudarte?"></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-outline-primary w-100">Enviar Mensaje</button>
+                                </form>
+                                <div id="contact-alert" class="mt-3"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Footer -->
+            <footer class="footer footer-transparent d-print-none bg-dark text-white py-4">
+                <div class="container-xl text-center">
+                    <p class="mb-0">&copy; 2025 Bar El Refugio. Todos los derechos reservados.</p>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Tabler JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

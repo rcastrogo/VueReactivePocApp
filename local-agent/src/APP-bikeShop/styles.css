@@ -1,0 +1,30 @@
+/* Estilos personalizados para APP-bikeShop */
+:root {
+  --tblr-primary: #206bc4;
+}
+
+body {
+  font-family: var(--tblr-font-sans-serif), sans-serif;
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+
+.hero-section {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: #ffffff;
+  padding: 5rem 0;
+}
+
+.feature-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+footer {
+  background-color: #0f172a;
+  color: #94a3b8;
+}

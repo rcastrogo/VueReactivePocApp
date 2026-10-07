@@ -1,0 +1,84 @@
+/* Estilos personalizados para la landing page del bar - Complemento de Tabler CSS */
+
+:root {
+    --bar-primary: #206bc4;
+    --bar-dark: #1e293b;
+    --bar-accent: #f59e0b;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #f8fafc;
+    color: #334155;
+    scroll-behavior: smooth;
+}
+
+/* Hero Section */
+.hero-section {
+    background: linear-gradient(rgba(15, 23, 42, 0.75), rgba(15, 23, 42, 0.75)), url('https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=1920&q=80') no-repeat center center;
+    background-size: cover;
+    color: #ffffff;
+    padding: 7rem 0;
+    margin-bottom: 2rem;
+}
+
+.hero-title {
+    font-weight: 800;
+    letter-spacing: -0.025em;
+}
+
+/* Menú & Tarjetas */
+.menu-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    border: none;
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+.menu-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+.menu-img-container {
+    height: 200px;
+    overflow: hidden;
+    position: relative;
+}
+
+.menu-img-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.menu-card:hover .menu-img-container img {
+    transform: scale(1.05);
+}
+
+.badge-price {
+    font-size: 1rem;
+    padding: 0.5em 0.8em;
+    font-weight: 700;
+}
+
+/* Secciones */
+section {
+    padding: 4rem 0;
+}
+
+section:nth-of-type(even) {
+    background-color: #ffffff;
+}
+
+/* Footer */
+footer {
+    background-color: #0f172a;
+    color: #94a3b8;
+    padding: 3rem 0;
+}
+
+footer h5 {
+    color: #ffffff;
+}

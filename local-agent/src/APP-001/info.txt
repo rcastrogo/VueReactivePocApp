@@ -1,0 +1,29 @@
+Resumen de las tablas de la base de datos:
+
+1. app_session:
+   - id (uuid, not null)
+   - user_id (integer, nullable)
+   - expires_at (timestamp without time zone, not null)
+   - created_at (timestamp without time zone, nullable)
+
+2. app_user:
+   - id (integer, not null)
+   - google_id (character varying, not null)
+   - email (character varying, not null)
+   - name (character varying, nullable)
+   - picture (text, nullable)
+   - created_at (timestamp without time zone, nullable)
+
+3. tipo_usuario:
+   - id (integer, not null)
+   - codigo (character varying, not null)
+   - descripcion (character varying, not null)
+   - activo (boolean, not null)
+
+4. usuario:
+   - id (bigint, not null)
+   - nif (character varying, not null)
+   - nombre (character varying, not null)
+   - descripcion (text, nullable)
+   - fecha_de_alta (timestamp without time zone, not null)
+   - fecha_de_baja (timestamp without time zone, nullable)

@@ -1,5 +1,0 @@
-Resumen de informes disponibles en el sistema de facturación:
-
-- Informe 1
-- Informe 2
-- Informe 3

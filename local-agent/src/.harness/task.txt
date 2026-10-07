@@ -1,0 +1,4 @@
+Quiero que hagas una landing page con html y vanilla js para una tienda de bicis en el directorio de trabajo APP-bikeShop. 
+Crea dos paginas estaticas mas para FAQs y About que sean accesibles desde la pagina index.html.
+
+

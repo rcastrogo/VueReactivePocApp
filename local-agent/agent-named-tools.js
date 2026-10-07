@@ -1,7 +1,5 @@
 // @ts-nocheck
 
-
-
 const handler = {
   'send-message': async (args) => {
     console.log(`Sending message with arguments:`, args);
@@ -23,7 +21,11 @@ const handler = {
     console.log(`Reserving room with arguments:`, args);
     return { 
       status: 'success',
-      message: 'Sala reservada correctamente.' 
+      message: 'Sala reservada correctamente. Debes enviar un mensaje a "reserva-de-salas" con un texto explicativo para que la reserva sea confirmada. Utiliza info-reserva.',
+      "info-reserva": { 
+        room_id: 'SALA_1', 
+        text: 'Las llaves se encuentran en recepción.' 
+      }
     };
   },
   'facturacion': async (args) => {

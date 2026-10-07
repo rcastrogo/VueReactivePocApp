@@ -8,3 +8,6 @@ node agent Crea un fichero con un resumen de los informes disponibles en el sist
 
 node agent Quiero saber que eventos están disponibles el día 25 de noviembre para el equipo de desarrollo.
 node agent Quiero utilizar el sistema de facturación para generar la remesa del mes de octubre la clave es "sésamo"
+
+
+ node agent Consulta el fichero APP-001/info.txt y crea en el mismo directorio ficheros nombre-tabla.js con las SQL de acciones CRUD en formato "@neondatabase/serverless". Excribe un fichero por turno y no termines hasta escibir todos
