@@ -1,40 +1,26 @@
 {
-  "goal": "Crear una landing page y páginas estáticas de FAQs y About para una tienda de bicis en APP-bikeShop",
+  "goal": "Crear una landing page en HTML y JavaScript para la tienda de chocolates La onza feliz en la carpeta APP-chocolate con una página de FAQs enlazada desde index.html",
   "status": "completed",
   "tasks": [
     {
       "id": 1,
-      "description": "Escribir el archivo workspace:APP-bikeShop/index.html con la estructura HTML principal de la landing page de la tienda de bicicletas y enlaces a FAQs y About.",
+      "description": "Escribir el archivo workspace:APP-chocolate/index.html con la estructura básica, estilos CSS integrados y enlace a faqs.html.",
       "status": "done",
-      "result": "Creado el archivo workspace:APP-bikeShop/index.html con la estructura principal de la landing page usando Tabler CSS, secciones destacadas y enlaces a FAQs y About.",
+      "result": "Creado el archivo `workspace:APP-chocolate/index.html` con estructura básica, estilos CSS de Tabler, catálogo de productos y enlace a `faqs.html`. Ruta: `APP-chocolate/index.html`.",
       "attempts": 0
     },
     {
       "id": 2,
-      "description": "Escribir el archivo workspace:APP-bikeShop/about.html con la página estática de información sobre la tienda y navegación de vuelta al inicio.",
+      "description": "Escribir el archivo workspace:APP-chocolate/faqs.html con preguntas frecuentes sobre los chocolates de La onza feliz y enlace de regreso a index.html.",
       "status": "done",
-      "result": "Creado el archivo `workspace:APP-bikeShop/about.html` con la página estática de información sobre la tienda y enlaces de navegación hacia el inicio y FAQs. Ruta: `workspace:APP-bikeShop/about.html`.",
+      "result": "Creado el archivo `workspace:APP-chocolate/faqs.html` con las preguntas frecuentes de la tienda y enlace de retorno a `index.html`. Ruta: `APP-chocolate/faqs.html`.",
       "attempts": 0
     },
     {
       "id": 3,
-      "description": "Escribir el archivo workspace:APP-bikeShop/faqs.html con la página estática de preguntas frecuentes y enlaces de navegación.",
+      "description": "Escribir el archivo workspace:APP-chocolate/script.js con interactividad en JavaScript para la landing page (por ejemplo, alertas de compra o acordeón de FAQs).",
       "status": "done",
-      "result": "Creado el archivo `workspace:APP-bikeShop/faqs.html` con la página estática de preguntas frecuentes y enlaces de navegación utilizando Tabler CSS. Ruta: `workspace:APP-bikeShop/faqs.html`.",
-      "attempts": 0
-    },
-    {
-      "id": 4,
-      "description": "Escribir el archivo workspace:APP-bikeShop/styles.css con los estilos base para la landing page y las páginas secundarias.",
-      "status": "done",
-      "result": "Creado el archivo `workspace:APP-bikeShop/styles.css` con los estilos base personalizados y efectos visuales para la landing page y páginas secundarias. Ruta: `workspace:APP-bikeShop/styles.css`.",
-      "attempts": 0
-    },
-    {
-      "id": 5,
-      "description": "Escribir el archivo workspace:APP-bikeShop/main.js con la lógica en vanilla JS para la interactividad de la tienda de bicis.",
-      "status": "done",
-      "result": "Creado el archivo `workspace:APP-bikeShop/main.js` con la lógica en vanilla JS para la interactividad de la tienda de bicis (gestión de formularios y acordeones). Ruta: `workspace:APP-bikeShop/main.js`.",
+      "result": "Creado el archivo `workspace:APP-chocolate/script.js` con interactividad en JavaScript para las alertas de compra en el catálogo y soporte para el acordeón de FAQs. Ruta: `APP-chocolate/script.js`.",
       "attempts": 0
     }
   ]

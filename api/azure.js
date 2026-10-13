@@ -110,7 +110,7 @@ async function translateText({ text, texts, from, to }) {
       targets
     }))
   };
-  console.log('Invocando Azure Translator con payload:', requestBody);
+  // console.log('Invocando Azure Translator con payload:', requestBody);
 
   const cleanEndpoint = AZURE_TRANSLATOR_ENDPOINT.replace(/\/$/, '');
   const url = `${cleanEndpoint}/translator/text/translate?api-version=${AZURE_TRANSLATOR_API_VERSION}`;

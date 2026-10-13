@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Onza Feliz - Chocolates Artesanales</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/css/tabler.min.css">
+    <style>
+        .hero-bg {
+            background: linear-gradient(135deg, #4a2e18 0%, #2b1708 100%);
+            color: #ffffff;
+        }
+        .chocolate-card {
+            transition: transform 0.3s ease;
+        }
+        .chocolate-card:hover {
+            transform: translateY(-5px);
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <header class="navbar navbar-expand-md navbar-light bg-white sticky-top shadow-sm">
+        <div class="container-xl">
+            <a href="index.html" class="navbar-brand font-weight-bold text-dark">
+                🍫 La Onza Feliz
+            </a>
+            <div class="navbar-nav flex-row">
+                <a href="index.html" class="nav-link px-3 active">Inicio</a>
+                <a href="faqs.html" class="nav-link px-3">FAQs</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="hero-bg py-5 mb-5 text-center">
+        <div class="container-xl py-5">
+            <h1 class="display-4 font-weight-bold mb-3">Chocolates Artesanales La Onza Feliz</h1>
+            <p class="lead text-muted mb-4" style="color: #d1b89d !important;">El verdadero sabor del cacao seleccionado con amor y tradición.</p>
+            <a href="#productos" class="btn btn-warning btn-lg font-weight-bold">Ver Catálogo</a>
+        </div>
+    </div>
+
+    <main class="container-xl mb-5" id="productos">
+        <h2 class="text-center mb-4 font-weight-bold">Nuestros Chocolates</h2>
+        <div class="row row-cards">
+            <div class="col-md-4 mb-4">
+                <div class="card chocolate-card h-100 shadow-sm">
+                    <div class="card-body d-flex flex-column">
+                        <h3 class="card-title">🍫 Tableta Cacao 70%</h3>
+                        <p class="text-muted">Intenso y puro, ideal para los amantes del chocolate negro tradicional.</p>
+                        <div class="mt-auto d-flex justify-content-between align-items-center">
+                            <span class="font-weight-bold text-primary h3 mb-0">4.50 €</span>
+                            <button class="btn btn-outline-primary btn-comprar" data-producto="Tableta Cacao 70%">Comprar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card chocolate-card h-100 shadow-sm">
+                    <div class="card-body d-flex flex-column">
+                        <h3 class="card-title">🌰 Trufas de Avellana</h3>
+                        <p class="text-muted">Suaves trufas artesanales rellenas de crema de avellana tostada.</p>
+                        <div class="mt-auto d-flex justify-content-between align-items-center">
+                            <span class="font-weight-bold text-primary h3 mb-0">6.00 €</span>
+                            <button class="btn btn-outline-primary btn-comprar" data-producto="Trufas de Avellana">Comprar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card chocolate-card h-100 shadow-sm">
+                    <div class="card-body d-flex flex-column">
+                        <h3 class="card-title">🍊 Chocolate con Naranja</h3>
+                        <p class="text-muted">Una exquisita combinación de chocolate con twist de naranja confitada.</p>
+                        <div class="mt-auto d-flex justify-content-between align-items-center">
+                            <span class="font-weight-bold text-primary h3 mb-0">5.00 €</span>
+                            <button class="btn btn-outline-primary btn-comprar" data-producto="Chocolate con Naranja">Comprar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-white py-4 border-top text-center text-muted">
+        <div class="container-xl">
+            <p class="mb-1">&copy; 2025 La Onza Feliz. Todos los derechos reservados.</p>
+            <p class="small"><a href="faqs.html" class="text-secondary">Preguntas Frecuentes (FAQs)</a></p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
