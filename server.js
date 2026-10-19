@@ -16,7 +16,9 @@ import routerHandler from './api/router.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
+
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ limit: '1mb', extended: true }));
 app.use(express.static('./public'));
 
 app.all('/api/auth/callback', authCallbackHandler);

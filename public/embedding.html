@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat y embeddings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="/css/tailwind.css" rel="stylesheet">
+  <script src="/js/reactivity.global.js"></script>
+  <script src="/js/lib.js"></script>
+  <script src="/js/ai-gemini.js"></script>
+  <style>
+    .embedding-panel { min-width: 0; border-left: 1px solid #cbd5e1; padding: 1rem; }
+    .embedding-results { display: grid; gap: 1rem; max-height: 70vh; overflow-y: visible; }
+    .embedding-chunk { min-width: 0; border: 1px solid #cbd5e1; border-radius: 8px; background: white; padding: 1rem; }
+    .embedding-chunk.is-nearest { background: #ecfdf5; border-color: #059669; box-shadow: inset 4px 0 #059669; }
+    .embedding-text { white-space: pre-wrap; overflow-wrap: anywhere; margin: .75rem 0; font-size: .875rem; }
+    .embedding-preview { width: 140px; object-fit: contain; margin-top: .75rem; background: #f8fafc; float: left; margin-right: 5px; margin-bottom: 5px; }
+    .embedding-vector { max-height: 14rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: .75rem/1.6 monospace; background: #f1f5f9; padding: .75rem; margin-top: .75rem; }
+    .embedding-error { color: #b91c1c; }
+    .embedding-loading { height: 4px; overflow: hidden; border-radius: 4px; background: #dbeafe; }
+    .embedding-loading span { display: block; width: 40%; height: 100%; background: #2563eb; animation: embedding-progress 1.2s ease-in-out infinite; }
+    @keyframes embedding-progress {
+      from { transform: translateX(-100%); }
+      to { transform: translateX(350%); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .embedding-loading span { animation: none; transform: translateX(75%); }
+    }
+    @media (max-width: 1023px) {
+      .embedding-panel { border-left: 0; border-top: 1px solid #cbd5e1; padding: 1rem 0; }
+    }
+  </style>
+</head>
+
+<body class="min-h-dvh bg-slate-50 text-slate-900" style="font-family: 'Space Grotesk', sans-serif;">
+  <main class="mx-auto flex min-h-dvh w-full max-w-360 flex-col px-3 py-4 sm:px-6 lg:px-8">
+    <header class="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4 sm:mb-6">
+      <div>
+        <p class="text-xs font-semibold tracking-[0.18em] text-teal-700">REACTIVE UI LAB</p>
+        <h1 class="mt-1 text-2xl font-bold leading-tight sm:text-3xl">Chat y embeddings</h1>
+      </div>
+      <a href="/index.html" title="Inicio" class="tool-bar-button border-slate-200 bg-white text-slate-700 no-underline">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-5">
+          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        <span>Inicio</span>
+      </a>
+    </header>
+
+    <div class="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)] lg:gap-6">
+      <section class="flex min-h-136 max-h-[calc(100vh-9rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" aria-label="Chat">
+        <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 sm:px-5">
+          <div>
+            <h2 class="font-semibold">Conversación</h2>
+          </div>
+          <span id="modelStatus" class="shrink-0 text-xs text-slate-500" role="status">Gemini listo</span>
+        </div>
+
+        <div class="flex-1 space-y-4 overflow-y-auto">
+          <div class="w-full bg-slate-100 p-4 sm:p-5 text-sm leading-6 text-slate-700 shadow-sm">
+            <p class="mb-4">
+              ¡Bienvenido al chat!<br>
+              Puedes preguntarme sobre <b>bicicletas</b> o sobre <b>incidencias de IT</b> en tu empresa.<br>
+              Si necesitas ayuda, no dudes en preguntar.
+            </p>         
+            <!-- Sección de selección de tono -->
+            <div class="border-t border-slate-200 pt-3">
+              <span class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                Selecciona el tono de respuesta:
+              </span>
+              
+              <div class="flex flex-wrap gap-2">
+                <label class="inline-flex items-center gap-1.5 cursor-pointer bg-white px-3 py-1.5 rounded-full border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 transition shadow-2xs">
+                  <input type="radio" name="chat_tone" value="neutral" class="text-indigo-600 focus:ring-indigo-500" checked />
+                  Neutral
+                </label>
+
+                <label class="inline-flex items-center gap-1.5 cursor-pointer bg-white px-3 py-1.5 rounded-full border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 transition shadow-2xs">
+                  <input type="radio" name="chat_tone" value="profesional" class="text-indigo-600 focus:ring-indigo-500" />
+                  Profesional
+                </label>
+
+                <label class="inline-flex items-center gap-1.5 cursor-pointer bg-white px-3 py-1.5 rounded-full border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 transition shadow-2xs">
+                  <input type="radio" name="chat_tone" value="cercano" class="text-indigo-600 focus:ring-indigo-500" />
+                  Cercano
+                </label>
+
+                <label class="inline-flex items-center gap-1.5 cursor-pointer bg-white px-3 py-1.5 rounded-full border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 transition shadow-2xs">
+                  <input type="radio" name="chat_tone" value="gracioso" class="text-indigo-600 focus:ring-indigo-500" />
+                  Gracioso
+                </label>
+
+                <label class="inline-flex items-center gap-1.5 cursor-pointer bg-white px-3 py-1.5 rounded-full border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 transition shadow-2xs">
+                  <input type="radio" name="chat_tone" value="infantil" class="text-indigo-600 focus:ring-indigo-500" />
+                  Infantil
+                </label>
+
+                <label class="inline-flex items-center gap-1.5 cursor-pointer bg-white px-3 py-1.5 rounded-full border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 transition shadow-2xs">
+                  <input type="radio" name="chat_tone" value="macarra" class="text-indigo-600 focus:ring-indigo-500" />
+                  Macarra
+                </label>
+              </div>
+            </div>
+          </div>
+          <div id="chatMessages" class="flex-1 space-y-4 p-4 sm:p-5"  role="log" aria-live="polite">
+
+          </div>
+        </div>
+
+        <form id="chatForm" class="border-t border-slate-100 p-3 sm:p-4">
+          <label class="sr-only" for="promptInput">Mensaje</label>
+          <div class="flex items-end gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2 focus-within:border-teal-600">
+            <textarea id="promptInput" rows="2" required placeholder="Escribe tu mensaje..."
+              class="min-w-0 flex-1 resize-none border-0 bg-transparent p-2 text-sm leading-5 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-0">Tengo problemas con mi cuenta de empresa. ¿Que puedo hacer?</textarea>
+            <button id="sendButton" type="submit" title="Enviar mensaje" aria-label="Enviar mensaje"
+              class="tool-bar-button border-0 bg-teal-700 p-2 text-white hover:bg-teal-800">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-5">
+                <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>
+              </svg>
+            </button>
+            <button id="clearChatButton" type="button" title="Limpiar chat" aria-label="Limpiar chat"
+              class="tool-bar-button border-0 bg-teal-700 p-2 text-white hover:bg-teal-800">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-5">
+                <path d="M18 6 6 18M6 6l12 12"/>
+              </svg>
+            </button>            
+          </div>
+          <p id="chatStatus" class="mt-2 min-h-4 text-xs text-slate-500" role="status"></p>
+        </form>
+      </section>
+
+      <section class="embedding-panel overflow-y-scroll min-h-136 max-h-[calc(100vh-9rem)]" aria-labelledby="embeddingTitle">
+        <h2 id="embeddingTitle" class="font-semibold">Chunks y vectores</h2>
+        <p id="embeddingStatus" class="mt-2 text-xs text-slate-500" role="status">Sin embeddings</p>
+
+      
+        <div class="flex items-center gap-1">
+          <label class="flex rounded-lg items-center gap-2 text-sm border-0 bg-teal-700 p-2 text-white hover:bg-teal-800">
+            <input id="filterEmbeddings" type="checkbox">
+            Top 3
+          </label>
+          <label class="flex rounded-lg items-center gap-2 text-sm border-0 bg-teal-700 p-2 text-white hover:bg-teal-800">
+            <input id="toogleVectorVisibility" type="checkbox">
+            Show vectors
+          </label>
+          <button id="addEmbeddingButton" type="button" 
+            class="flex-1 tool-bar-button border-0 bg-teal-700 p-2 text-white hover:bg-teal-800">
+            Add FAQ
+          </button>
+          <button id="deleteEmbeddingButton" type="button" title="Borrar todos los embeddings" aria-label="Borrar todos los embeddings"
+            class="flex-1 tool-bar-button border-0 bg-teal-700 p-2 text-white hover:bg-teal-800">
+            Delete all
+          </button>           
+        </div>
+        <p id="similarityStatus" class="mt-2 text-xs text-slate-500" role="status"></p>         
+        <div id="loadingStatus" class="embedding-loading mt-2" role="progressbar" aria-label="Recuperando embedding de la consulta" hidden>
+          <span aria-hidden="true"></span>
+        </div>
+
+        <div id="imageGallery" class="grid grid-cols-3 gap-4 px-2" onchange="handleGridClick(event)">
+
+          <!-- Bicicleta -->
+          <div class="flex items-center gap-2">
+            <input id="bike-brake" type="checkbox" />
+            <label for="bike-brake" class="cursor-pointer">
+              <img src="/images/bike-brake.png" alt="Freno de bicicleta" class="h-auto max-w-full rounded" />
+            </label>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input id="bike-derailleur" type="checkbox" />
+            <label for="bike-derailleur" class="cursor-pointer">
+              <img src="/images/bike-derailleur.png" alt="Cambio de bicicleta" class="h-auto max-w-full rounded" />
+            </label>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input id="bike-saddle" type="checkbox" />
+            <label for="bike-saddle" class="cursor-pointer">
+              <img src="/images/bike-saddle.png" alt="Sillín de bicicleta" class="h-auto max-w-full rounded" />
+            </label>
+
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input id="bike-wheel" type="checkbox" />
+            <label for="bike-wheel" class="cursor-pointer">
+              <img src="/images/bike-wheel.png" alt="Rueda de bicicleta" class="h-auto max-w-full rounded" />
+            </label>
+          </div>
+
+          <!-- IT / Incidencias -->
+          <div class="flex items-center gap-2">
+            <input id="ti-connection" type="checkbox" />
+            <label for="ti-connection" class="cursor-pointer">
+              <img src="/images/ti-connection.png" alt="Problemas de conexión IT" class="h-auto max-w-full rounded" />
+            </label>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input id="ti-hardware" type="checkbox" />
+            <label for="ti-hardware" class="cursor-pointer">
+              <img src="/images/ti-hardware.png" alt="Fallos de hardware IT" class="h-auto max-w-full rounded" />
+            </label>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input id="ti-security" type="checkbox" />
+            <label for="ti-security" class="cursor-pointer">
+              <img src="/images/ti-security.png" alt="Seguridad y accesos IT" class="h-auto max-w-full rounded" />
+            </label>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input id="ti-software" type="checkbox" />
+            <label for="ti-software" class="cursor-pointer">
+              <img src="/images/ti-software.png" alt="Errores de software IT" class="h-auto max-w-full rounded" />
+            </label>
+          </div>
+          <div class="flex items-center gap-2">
+            <input id="ti-school-schedule" type="checkbox" />
+            <label for="ti-school-schedule" class="cursor-pointer">
+              <img src="/images/school-schedule.png" alt="Horario" class="h-auto max-w-full rounded" />
+            </label>
+          </div>
+          
+        </div>    
+ 
+        <div id="embeddingResults" class="embedding-results mt-4"></div>
+      </section>
+
+    </div>
+  </main>
+
+  <script>
+
+    let embeddingCount = 0;
+    const faq = [
+      "¿Qué hago si he olvidado mi contraseña o mi cuenta se ha bloqueado?###¡No entre en pánico! Puedes restablecerla tú mismo desde el portal de autoservicio de contraseñas. Si tu cuenta está bloqueada tras varios intentos, espera 15 minutos o abre un ticket indicando tu nombre de usuario para que la desbloqueemos.",
+      "No recibo el código de verificación del Autenticador (MFA / 2FA). ¿Cómo entro?###Comprueba que tu teléfono tenga cobertura o conexión a red. Si has cambiado de móvil o no tienes acceso a la app autenticadora, ponte en contacto con soporte para que verifiquemos tu identidad y reconfiguremos tu doble factor.",
+      "¿Cómo solicito acceso a una carpeta compartida o a una herramienta concreta?###Crea un ticket de soporte indicando el nombre exacto de la carpeta o software y adjunta la aprobación por correo de tu responsable directo. Sin esa autorización no podremos darte acceso.",
+      "¿Cómo sé qué talla de bicicleta me corresponde?###La talla depende principalmente de tu estatura y la medida de tu entrepierna. En cada ficha de producto dispones de una tabla de tallas específica, pero si dudaste entre dos, nuestro equipo te asesora según tu tipo de conducción.",
+      "¿Las bicicletas se entregan totalmente montadas y ajustadas?###Las enviamos montadas al 85%. Tan solo tendrás que colocar la rueda delantera, el manillar, los pedales y ajustar la tija del sillín. Incluimos las herramientas básicas y una guía paso a paso para tenerla lista en 15 minutos.",
+      "¿Cada cuánto tiempo debo hacerle una revisión a mi bicicleta?###Recomendamos un mantenimiento básico (limpieza y engrase de cadena) cada 200 km o un mes. La primera revisión general conviene hacerla a los 2-3 meses de uso para reajustar cables y radios tras el rodaje inicial.",
+      "¿Qué incluye el servicio postventa o la primera revisión en tienda física?###Si compras en nuestra web o tienda física, la primera revisión de reajuste (frenos, cambio y centrado de ruedas) es completamente gratuita durante los primeros 6 meses tras la compra.",
+      "¿Realizáis envíos a las Islas Canarias, Baleares o fuera del país?###Enviamos a Baleares con normalidad. Para envíos a Canarias o internacionales, escríbenos con tu código postal para calcular los gastos de envío y la gestión aduanera correspondiente.",
+      "¿Qué hago si la bicicleta sufre un daño durante el transporte?###Revisa la caja al recibirla. Si observas desperfectos externos, anótalo en el albarán del repartidor y haz fotos antes de abrirla. Si el producto interior está dañado, contáctanos en 24 horas y gestionaremos la recogida o reposición inmediata.",      
+      "He vuelto de vacaciones y no puedo iniciar sesión en mi equipo. ¿Qué pasa?###Por política de seguridad, las contraseñas caducan tras un periodo de inactividad o tiempo determinado. Conecta tu ordenador por cable de red a la oficina o mediante VPN para actualizar tus credenciales.",
+      "La VPN no conecta o se desconecta a cada rato cuando trabajo desde casa.###Primero revisa tu conexión a internet doméstica. Intenta reiniciar tu router y prueba a conectarte usando el cliente VPN en lugar del navegador. Si el fallo persiste, adjunta una captura del código de error en tu ticket.",
+      "¿A qué red Wi-Fi debo conectarme cuando estoy en la oficina?###Usa la red corporativa identificada como 'Corporate-WiFi' introduciendo tus credenciales habituales de usuario. La red de invitados está restringida y no te dará acceso a las impresoras ni a los recursos internos.",
+      "No tengo acceso a internet en el equipo de la oficina.###Asegúrate de que el cable de red esté bien encajado en la roseta o que el Wi-Fi esté activado. Si todo parece estar bien conectado, reinicia el equipo antes de abrir una incidencia.",
+      "¿Qué autonomía tienen las bicicletas eléctricas (e-bikes)?###La autonomía oscila habitualmente entre los 50 km y 120 km. Depende directamente de la capacidad de la batería (Wh), el nivel de asistencia seleccionado, el peso del ciclista y el desnivel del terreno.",
+      "¿Aceptáis mi bicicleta antigua como parte del pago (Plan Renove)?###Sí, disponemos de servicio de tasación. Puedes enviarnos fotos y detalles del estado de tu bici actual a través de nuestro formulario web y te ofreceremos un descuento equivalente para tu nueva compra.",
+      "¿Qué garantía tienen los cuadros y los componentes?###Todos los componentes cuentan con 3 años de garantía oficial contra defectos de fabricación. Además, los cuadros de marcas seleccionadas incluyen garantía de por vida tras registrar el número de serie.",
+      "¿Puedo tubelizar las ruedas de mi bicicleta de montaña?###La mayoría de nuestras ruedas y cubiertas de gama media-alta vienen etiquetadas como 'Tubeless Ready'. Podemos entregarte la bicicleta ya tubelizada con líquido sellante si añades el servicio en tu carrito.",
+      "Mi ordenador va extremadamente lento o se queda congelado.###Prueba la solución clásica: reinicia el equipo. Muchas veces los procesos en segundo plano o las actualizaciones pendientes consumen recursos. Si sigue lento, dinos qué programas estabas usando para revisar la memoria RAM.",
+      "El monitor secundario o el Docking Station no detecta señal.###Desconecta el cable de corriente del Docking durante 10 segundos y vuelve a enchufarlo. Asegúrate de que los cables HDMI o DisplayPort estén bien ajustados a los monitores.",
+      "Mi portátil no carga la batería.###Verifica que el cargador esté conectado a un enchufe funcional y que el LED del cargador encienda. Si usas carga por USB-C, prueba a conectar el cable en otro puerto del portátil.",
+      "¿Qué hago si se me ha derramado líquido sobre el ordenador?###¡Apágalo inmediatamente! Desconecta el cargador, no intentes encenderlo y sécalo por fuera. Acércate lo antes posible al punto de soporte IT o avísanos de urgencia para minimizar daños.",
+      "Outlook o Teams no sincronizan o no envían mensajes.###Comprueba si tienes conexión a internet. Si el resto de páginas cargan bien, cierra la aplicación por completo (desde el Administrador de Tareas si es necesario) y vuelve a abrirla.",
+      "¿Cómo instalo un programa que necesito para trabajar?###Primero revisa el 'Catálogo de Software / Software Center' de tu equipo; ahí puedes instalar herramientas autorizadas con un solo clic. Si el programa no está en la lista, crea un ticket de solicitud de software.",
+      "La impresora de la oficina no imprime o da error.###Comprueba si la impresora tiene papel o si hay un atasco indicado en su pantalla. Si el problema es solo desde tu equipo, elimina la impresora desde tus ajustes e intentalo añadir de nuevo mediante la red.",
+      "¿Cómo puedo recuperar un archivo que borré por error?###Si el archivo estaba en OneDrive, SharePoint o Google Drive, revisa la Papelera de Reciclaje de la nube dentro de los primeros 30 días. Si estaba en un servidor local, indica en un ticket la ruta exacta y la fecha aproximada.",
+      "He recibido un correo sospechoso pidiendo datos o contraseñas. ¿Qué hago?###¡No hagas clic en ningún enlace ni descargues adjuntos! Utiliza el botón 'Reportar Phishing' de tu cliente de correo o reenvíalo como adjunto al equipo de ciberseguridad.",
+      "Creo que he hecho clic en un enlace malicioso o he descargado un virus.###Desconecta de inmediato tu equipo del Wi-Fi o desenchufa el cable de red para evitar que se propague en la empresa y avisa de urgencia a IT llamando al teléfono de incidencias.",
+      "¿Cuál es el tiempo medio de respuesta para mi ticket?###Priorizamos las incidencias según su impacto: los bloqueos críticos de negocio se atienden en menos de 1 hora, mientras que las peticiones estándar de acceso o software se gestionan en un plazo de 24 a 48 horas.",
+      "¿Cómo puedo ver el estado de una incidencia que ya he abierto?###Accede al historial de tus peticiones desde el Portal de Soporte IT para ver los comentarios del técnico asignado o añadir más detalles a tu consulta.",
+      "¿Qué información debo incluir para que me resuelvan el problema más rápido?###Indica siempre: qué estabas haciendo cuando ocurrió el fallo, el texto exacto o una captura de pantalla del mensaje de error, y tu número de teléfono por si necesitamos contactarte."
+    ];
+
+
+
+    const elements = {
+      chatForm: document.getElementById('chatForm'),
+      chatMessages: document.getElementById('chatMessages'),
+      chatStatus: document.getElementById('chatStatus'),
+      promptInput: document.getElementById('promptInput'),
+      toneInputs: document.querySelectorAll('input[name="chat_tone"]'),
+      sendButton: document.getElementById('sendButton'),
+      clearChatButton: document.getElementById('clearChatButton'),
+      toogleVectorVisibility: document.getElementById('toogleVectorVisibility'),
+      modelStatus: document.getElementById('modelStatus'),
+      addEmbeddingButton: document.getElementById('addEmbeddingButton'),
+      deleteEmbeddingButton: document.getElementById('deleteEmbeddingButton'),
+      filterEmbeddings: document.getElementById('filterEmbeddings'),
+      similarityStatus: document.getElementById('similarityStatus'),
+      loadingStatus: document.getElementById('loadingStatus'),
+      imageGallery: document.getElementById('imageGallery'),
+      embeddingStatus: document.getElementById('embeddingStatus'),
+      embeddingResults: document.getElementById('embeddingResults')
+    };
+
+    function addMessage(role, text, renderHtml = false) {
+      const message = document.createElement('div');
+      const isUser = role === 'user';
+      message.className = `ml-auto max-w-[90%] rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-6 ${isUser
+        ? 'bg-teal-700 text-white'
+        : 'mr-auto rounded-tl-sm bg-slate-100 text-slate-700'}`;
+      if (renderHtml) {
+        message.appendChild(createSafeResponse(text));
+      } else {
+        message.textContent = text;
+      }
+      elements.chatMessages.appendChild(message);
+      elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+      return message;
+    }
+
+    const embedding = [];
+    const embeddingModel = 'gemini-embedding-2';
+    const embeddingStorageKey = `embedding-lab:embeddings:${embeddingModel}:faq:v1`;
+    const embeddingStorageKey_img = 'embedding-lab:embeddings:gemini-embedding-2';
+    const embeddingCacheBase = 'embedding-lab:embeddings:';
+
+    let debounceTimer;
+    let similarityVersion = 0;
+    let chatVersion = 0;
+    let lastUserPrompt = '';
+    let currentQueryVector = null;
+    let cachedQuery = { text: '', promise: null };
+    let imageCollectionVersion = 0;
+
+    function isValidVector(vector) {
+      return Array.isArray(vector) && vector.length > 0 &&
+        vector.every((value) => typeof value === 'number' && Number.isFinite(value)) &&
+        vector.some((value) => value !== 0);
+    }
+
+    function normalizeImageEmbedding(entry) {
+      if (!entry || typeof entry.url !== 'string' || !isValidVector(entry.vector)) {
+        throw new Error('El embedding de imagen no es válido.');
+      }
+      const url = new URL(entry.url, location.origin);
+      if (url.origin !== location.origin) throw new Error('La imagen debe pertenecer a esta aplicación.');
+      const image = Array.from(elements.imageGallery.querySelectorAll('img'))
+        .find((item) => new URL(item.src, location.origin).pathname === url.pathname);
+      const text = typeof entry.text === 'string' ? entry.text.trim() : '';
+      if (!text) throw new Error('La imagen no tiene una descripción válida.');
+      return { url: url.pathname, title: image?.alt || 'Imagen', text, vector: entry.vector };
+    }
+
+    function syncImageEmbeddings() {
+      const selected = new Set(imageEmbeddings.map((entry) => entry.url));
+      elements.imageGallery.querySelectorAll('input').forEach((input) => {
+        const image = input.nextElementSibling.querySelector('img');
+        input.checked = selected.has(new URL(image.src, location.origin).pathname);
+      });
+      elements.deleteEmbeddingButton.disabled = embeddingCount === 0 && imageEmbeddings.length === 0;
+    }
+
+    function restoreImageEmbeddings() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(embeddingStorageKey_img) || '[]');
+        if (!Array.isArray(stored)) throw new Error('No hay embeddings de imágenes válidos en el almacenamiento local.');
+        const entries = stored.map(normalizeImageEmbedding);
+        imageEmbeddings.push(...new Map(entries.map((entry) => [entry.url, entry])).values());
+        syncImageEmbeddings();
+      } catch (error) {
+        console.error(`No se pudieron recuperar los embeddings de imágenes: ${error.message}`);
+      }
+    }
+
+    function restoreEmbeddings() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(embeddingStorageKey) || '[]');
+        if (!Array.isArray(stored) || stored.length > faq.length || !stored.every((entry, index) =>
+          entry?.id === index + 1 && entry.chunk === faq[index] &&
+          entry.model === embeddingModel && isValidVector(entry.vector) &&
+          entry.vector.length === stored[0].vector.length &&
+          entry.vector.every((value) => typeof value === 'number' && Number.isFinite(value))
+        )) {
+          throw new Error('Los embeddings guardados no son válidos o no corresponden a la FAQ actual.');
+        }
+        embedding.push(...stored);
+        embeddingCount = embedding.length;
+        elements.embeddingStatus.textContent = `${embeddingCount} de ${faq.length} entradas añadidas`;
+        elements.addEmbeddingButton.disabled = embeddingCount >= faq.length;
+        elements.deleteEmbeddingButton.disabled = embeddingCount === 0 && imageEmbeddings.length === 0;
+      } catch (error) {
+        elements.embeddingStatus.textContent = `No se pudieron recuperar los embeddings: ${error.message}`;
+      }
+      renderEmbeddings();
+    }
+
+    const imageEmbeddings = [];
+
+    async function handleGridClick(event) {
+      const target = event.target;
+      if (target.tagName !== 'INPUT' || target.disabled) return;
+      const version = imageCollectionVersion;
+      const img = target.nextElementSibling.querySelector('img');
+      const url = new URL(img.src, location.origin);
+      target.disabled = true;
+      try {
+        let next = imageEmbeddings.filter((entry) => entry.url !== url.pathname);
+        if (target.checked) {
+          const embeddingCacheKey = `${embeddingCacheBase}${url.href}`;
+          const cachedEmbedding = localStorage.getItem(embeddingCacheKey);
+          let entry = null;
+          if (cachedEmbedding) {
+            try {
+              entry = normalizeImageEmbedding(JSON.parse(cachedEmbedding));
+              if (entry.url !== url.pathname) entry = null;
+            } catch {
+              entry = null;
+            }
+          }
+          if (!entry) {
+            const data = await rcg.ai.gemini.handleEmbedding(url.href, 'No muestres markdown en la respuesta. Interpreta la imagen y genera una lista de FAQ relacionadas.');
+            if (version !== imageCollectionVersion) return;
+            if (data?.error) throw new Error(data.error);
+            entry = normalizeImageEmbedding(data);
+            if (entry.url !== url.pathname) throw new Error('El embedding no corresponde a la imagen seleccionada.');
+            localStorage.setItem(embeddingCacheKey, JSON.stringify(entry));
+          }
+          next = [...imageEmbeddings.filter((item) => item.url !== url.pathname), entry];
+        }
+        if (version !== imageCollectionVersion) return;
+        localStorage.setItem(embeddingStorageKey_img, JSON.stringify(next));
+        imageEmbeddings.splice(0, imageEmbeddings.length, ...next);
+        scheduleSimilarity();
+      } catch (error) {
+        elements.similarityStatus.textContent = `Error de imagen: ${error.message}`;
+      } finally {
+        target.disabled = false;
+        syncImageEmbeddings();
+      }
+    }
+
+    function deleteEmbeddings() {
+      if (elements.deleteEmbeddingButton.disabled) return;
+      try {
+        localStorage.removeItem(embeddingStorageKey);
+        localStorage.removeItem(embeddingStorageKey_img);
+        imageCollectionVersion++;
+        clearTimeout(debounceTimer);
+        similarityVersion++;
+        elements.loadingStatus.hidden = true;
+        currentQueryVector = null;
+        cachedQuery = { text: '', promise: null };
+        embedding.length = 0;
+        imageEmbeddings.length = 0;
+        embeddingCount = 0;
+        elements.embeddingStatus.textContent = 'Sin embeddings';
+        elements.similarityStatus.textContent = '';
+        elements.addEmbeddingButton.disabled = false;
+        elements.deleteEmbeddingButton.disabled = true;
+        renderEmbeddings();
+        syncImageEmbeddings();
+      } catch (error) {
+        elements.embeddingStatus.textContent = `No se pudieron borrar los embeddings: ${error.message}`;
+      }
+    }
+
+    async function fetchEmbedding(text, mode) {
+      const values = await rcg.ai.gemini.handleTextEmbedding(text, mode);
+      if (!isValidVector(values)) {
+        throw new Error(values?.error || 'El modelo no devolvió un vector numérico válido.');
+      }
+      return values;
+    }
+
+    function getQueryVector(text) {
+      const key = JSON.stringify([text, embeddingModel]);
+      if (cachedQuery.text !== key || !cachedQuery.promise) {
+        const promise = fetchEmbedding(text, 'RETRIEVAL_QUERY');
+        cachedQuery = { text: key, promise };
+        promise.catch(() => {
+          if (cachedQuery.promise === promise) cachedQuery = { text: '', promise: null };
+        });
+      }
+      return cachedQuery.promise;
+    }
+
+    function cosineSimilarity(first, second) {
+      if (!first.length || first.length !== second.length) {
+        throw new Error('Los vectores tienen dimensiones incompatibles.');
+      }
+      let product = 0;
+      let firstNorm = 0;
+      let secondNorm = 0;
+      for (let index = 0; index < first.length; index++) {
+        product += first[index] * second[index];
+        firstNorm += first[index] ** 2;
+        secondNorm += second[index] ** 2;
+      }
+      if (!firstNorm || !secondNorm) throw new Error('No se puede comparar un vector nulo.');
+      return Math.max(-1, Math.min(1, product / (Math.sqrt(firstNorm) * Math.sqrt(secondNorm))));
+    }
+
+    function getEmbeddingEntries() {
+      return [
+        ...embedding.map((entry) => ({ ...entry, type: 'faq', key: `faq:${entry.id}` })),
+        ...imageEmbeddings.map((entry) => ({ ...entry, type: 'image', key: `image:${entry.url}`,
+          chunk: `Imagen: ${entry.title || 'Imagen'}\nDescripción: ${entry.text}\nURL: ${entry.url}` }))
+      ];
+    }
+
+    function rankEmbeddings(vector) {
+      return getEmbeddingEntries()
+        .map((entry) => ({ ...entry, score: cosineSimilarity(vector, entry.vector) }))
+        .sort((first, second) => second.score - first.score || first.key.localeCompare(second.key));
+    }
+
+    function renderEmbeddings() {
+      const ranked = currentQueryVector ? rankEmbeddings(currentQueryVector) : getEmbeddingEntries();
+      const nearest = new Set(currentQueryVector ? ranked.slice(0, 3).map((entry) => entry.key) : []);
+      elements.embeddingResults.replaceChildren();
+      for (const entry of ranked) {
+        const isNearest = nearest.has(entry.key);
+        if (currentQueryVector && elements.filterEmbeddings.checked && !isNearest) continue;
+        const [title, ...rest] = entry.type === 'image' ? [entry.title || 'Imagen', entry.text] : entry.chunk.split('###');
+        const item = document.createElement('article');
+        item.className = `embedding-chunk${isNearest ? ' is-nearest' : ''}`;
+        item.dataset.embeddingId = entry.key;
+        item.dataset.embeddingType = entry.type;
+        const heading = document.createElement('h3');
+        heading.className = 'text-sm font-semibold';
+        heading.textContent = title;
+
+        const content = document.createElement('p');
+        content.className = 'embedding-text font-normal';
+        if(entry.type === 'image'){
+          content.style = 'max-height: 150px;overflow: hidden;text-overflow: ellipsis;white-space: pre';       
+        }
+        content.textContent = rest.join('');
+        
+
+        const score = document.createElement('p');
+        score.className = 'text-sm font-semibold';
+        score.textContent = currentQueryVector
+          ? `Score: ${entry.score.toFixed(4)}${isNearest ? '' : ''}`
+          : 'Score: —';
+        const vector = document.createElement('pre');
+        vector.className = `embedding-vector${elements.toogleVectorVisibility.checked ? '' : ' hidden'}`;
+        vector.textContent = JSON.stringify(entry.vector);
+
+        item.appendChild(heading);
+        if (entry.type === 'image') {
+          const preview = document.createElement('img');
+          preview.src = entry.url;
+          preview.alt = title;
+          preview.className = 'embedding-preview';
+          preview.loading = 'lazy';
+          item.appendChild(preview);
+        }
+        item.append(content, score, vector);
+        elements.embeddingResults.appendChild(item);
+      }
+    }
+
+    async function updateSimilarity(text) {
+      const version = ++similarityVersion;
+      elements.loadingStatus.hidden = true;
+      if (!text || (!embedding.length && !imageEmbeddings.length)) {
+        currentQueryVector = null;
+        renderEmbeddings();
+        elements.similarityStatus.textContent = text ? 'Añade entradas FAQ o imágenes para comparar.' : '';
+        return [];
+      }
+      elements.similarityStatus.textContent = 'Calculando similitud...';
+      elements.loadingStatus.hidden = false;
+      try {
+        const vector = await getQueryVector(text);
+        const ranked = rankEmbeddings(vector);
+        if (version === similarityVersion) {
+          currentQueryVector = vector;
+          renderEmbeddings();
+          elements.similarityStatus.textContent = `${Math.min(3, ranked.length)} entradas más cercanas destacadas`;
+        }
+        return ranked.slice(0, 3);
+      } catch (error) {
+        if (version === similarityVersion) {
+          currentQueryVector = null;
+          renderEmbeddings();
+          elements.similarityStatus.textContent = `Error de similitud: ${error.message}`;
+        }
+        throw error;
+      } finally {
+        if (version === similarityVersion) elements.loadingStatus.hidden = true;
+      }
+    }
+
+    async function addNextEmbedding() {
+      if (elements.addEmbeddingButton.disabled || embeddingCount >= faq.length) return;
+      elements.addEmbeddingButton.disabled = true;
+      elements.deleteEmbeddingButton.disabled = true;
+      elements.embeddingStatus.textContent = `Generando FAQ ${embeddingCount + 1}...`;
+      try {
+        const chunk = faq[embeddingCount];
+        const vector = await fetchEmbedding(chunk, 'RETRIEVAL_DOCUMENT');
+        const entry = { id: embeddingCount + 1, chunk, vector, model: embeddingModel };
+        localStorage.setItem(embeddingStorageKey, JSON.stringify([...embedding, entry]));
+        embedding.push(entry);
+        embeddingCount++;
+        elements.embeddingStatus.textContent = `${embeddingCount} de ${faq.length} entradas añadidas`;
+        renderEmbeddings();
+        const text = elements.promptInput.value.trim();
+        if (text) scheduleSimilarity();
+      } catch (error) {
+        elements.embeddingStatus.textContent = `Error al añadir la entrada: ${error.message}`;
+      } finally {
+        elements.addEmbeddingButton.disabled = embeddingCount >= faq.length;
+        elements.deleteEmbeddingButton.disabled = embeddingCount === 0 && imageEmbeddings.length === 0;
+      }
+    }
+
+    function scheduleSimilarity() {
+      clearTimeout(debounceTimer);
+      similarityVersion++;
+      elements.loadingStatus.hidden = true;
+      currentQueryVector = null;
+      renderEmbeddings();
+      const text = elements.promptInput.value.trim();
+      elements.similarityStatus.textContent = text ? 'Pendiente de comparación...' : '';
+      if (text) debounceTimer = setTimeout(() => updateSimilarity(text).catch(() => {}), 2000);
+    }
+
+    function clearChat() {
+      chatVersion++;
+      lastUserPrompt = '';
+      elements.chatMessages.replaceChildren();
+      elements.promptInput.value = '';
+      cachedQuery = { text: '', promise: null };
+      scheduleSimilarity();
+      elements.chatStatus.textContent = '';
+      elements.modelStatus.textContent = 'Gemini listo';
+      elements.sendButton.disabled = false;
+      elements.promptInput.disabled = false;
+      elements.promptInput.focus();
+    }
+
+    async function sendPrompt(userPrompt) {
+      const version = ++chatVersion;
+      lastUserPrompt = userPrompt;
+      const tono = Array.from(elements.toneInputs).find((input) => input.checked)?.value || 'neutral';
+      elements.modelStatus.textContent = 'Consultando Gemini...';
+      elements.chatStatus.textContent = 'El asistente está preparando la respuesta.';
+      elements.sendButton.disabled = true;
+      elements.promptInput.disabled = true;
+
+      try {
+        clearTimeout(debounceTimer);
+        const nearest = await updateSimilarity(userPrompt);
+        if (version !== chatVersion) return;
+        const contexto_recuperado_del_rag = nearest.map((entry) => entry.chunk).join('\n\n');
+        const systemPrompt = `
+          Eres un asistente virtual  entusiasta y servicial. Tu misión es:
+          - Ayudar a los usuarios resolviendo sus dudas de forma rápida y clara.
+          - Sé directo y evita rodeos innecesarios. Responde siempre de forma positiva y amable en un tono "${tono}"
+        `;
+        const prompt = `
+          ### INSTRUCCIONES DE COMPORTAMIENTO:
+
+          1. Responde a la duda del usuario basándote ÚNICA Y EXCLUSIVAMENTE en las FAQ y descripciones de imágenes de la sección "[CONTEXTO RECUPERADO]".
+          2. Límites de Información: Si la respuesta no se encuentra en el contexto provisto, responde de forma simpática indicando que no tienes esa información a mano y sugiere ponerse en contacto con el equipo de soporte.
+          3. Nunca inventes información.
+          4. Nunca generes markdown.
+          5. Incluye la url de la fuente si se dispone de ella con el formato: @url@
+
+          ---
+          [CONTEXTO RECUPERADO]
+          ${contexto_recuperado_del_rag}
+          ---
+
+          [PREGUNTA DEL USUARIO]
+          ${userPrompt}        
+        `;
+        const result = await rcg.ai.gemini.handleSimpleChat(prompt, systemPrompt);
+        if (version !== chatVersion) return;
+        console.log('Resultado crudo de Gemini:', result);
+
+        const rawText = typeof result === 'string'
+          ? result
+          : (result?.data || result?.error || 'No recibí una respuesta del modelo.');
+
+        const responseContainer = document.createElement('div');
+        responseContainer.className = 'whitespace-pre-line relative';
+        responseContainer.textContent = rawText;
+        responseContainer.innerHTML = responseContainer.innerHTML.replace(
+          /@(.+?)@/g,
+          `<div class="w-full flex flex-col items-center justify-center my-4">
+              <a href="$1" target="_blank" class="flex justify-center w-full">
+                <img src="$1" class="rounded-lg m-2 w-1/2 border object-contain" />
+              </a>
+            </div>
+          `
+        );
+
+        const template = `<div class="absolute top-1 right-1 opacity-70 inline-flex items-center rounded-sm bg-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-600 shadow-sm border border-slate-300">${tono}</div>`;
+        const element = rcg.buildElement(template);
+        responseContainer.appendChild(element);
+
+        const message = document.createElement('div');
+        message.className = 'mr-auto max-w-[90%] rounded-2xl rounded-tl-sm bg-slate-100 px-4 py-3 text-sm leading-6 text-slate-700';
+        message.appendChild(responseContainer);
+        elements.chatMessages.appendChild(message);
+        elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+        elements.modelStatus.textContent = 'Gemini listo';
+        elements.chatStatus.textContent = '';
+
+      } catch (error) {
+        if (version !== chatVersion) return;
+        console.error('No se pudo completar la petición:', error);
+        addMessage('assistant', `No se pudo completar la petición: ${error.message}`);
+        elements.modelStatus.textContent = 'Error en Gemini';
+        elements.chatStatus.textContent = '';
+      } finally {
+        if (version === chatVersion) {
+          elements.sendButton.disabled = false;
+          elements.promptInput.disabled = false;
+          elements.promptInput.focus();
+        }
+      }
+    }
+
+    restoreImageEmbeddings();    
+    restoreEmbeddings();
+
+
+    elements.toneInputs.forEach((input) => {
+      input.addEventListener('change', () => {
+        if (input.checked && lastUserPrompt) sendPrompt(lastUserPrompt);
+      });
+    });
+    elements.deleteEmbeddingButton.addEventListener('click', deleteEmbeddings);
+    elements.clearChatButton.addEventListener('click', clearChat);
+    elements.toogleVectorVisibility.addEventListener('change', renderEmbeddings);
+    elements.addEmbeddingButton.addEventListener('click', addNextEmbedding);
+    elements.filterEmbeddings.addEventListener('change', renderEmbeddings);
+    elements.promptInput.addEventListener('input', scheduleSimilarity);
+    elements.chatForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (elements.sendButton.disabled) return;
+      const prompt = elements.promptInput.value.trim();
+      if (!prompt) return;
+      addMessage('user', prompt);
+      elements.promptInput.value = '';
+      sendPrompt(prompt);
+    });
+    elements.promptInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        elements.chatForm.requestSubmit();
+      }
+    });
+  </script>
+
+</body>
+
+</html>

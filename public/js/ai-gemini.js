@@ -1,6 +1,6 @@
 // @ts-nocheck
-async function invokeGeminiModel(payload) {
-  const url = '/api/gemini';
+async function invokeGeminiModel(payload, intent = '', mode = '') {
+  const url = '/api/gemini' + (intent ? `?intent=${intent}${mode ? `&mode=${mode}` : ''}` : '');
   const data = await rcg.http.post(url, payload, {
     headers: { 'Content-Type': 'application/json' }
   });
@@ -1060,5 +1060,88 @@ rcg.ai.gemini = {
         error: error.message 
       };
     }
+  },
+  handleSimpleChat: async function(text, system) {
+
+    const systemPrompt = system || 'Eres un asistente experto en incidencias de software.';
+
+    const payload = {
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents: [{ parts: [{ text: text }] }],
+      generationConfig: {
+        temperature: 0.2,     
+        maxOutputTokens: 500,
+      }
+    };
+
+    try {
+      const data = await invokeGeminiModel(payload) ?? '';
+      return { data };
+    } catch (error) {
+      console.error('rcg.ai.gemini.handleSimpleChat Error:', error);
+      return { error: `Error procesando la petición: ${error.message}` };
+    }
+  },
+  handleEmbedding: async function (imageUrl, text) {
+    try {
+      // 1. Descargar la imagen desde la URL
+      const imageResponse = await fetch(imageUrl);
+      if (!imageResponse.ok) throw new Error('No se pudo descargar la imagen de la URL.'); 
+      const blob = await imageResponse.blob();
+      const mimeType = blob.type;
+      // 2. Convertir el Blob a Base64 puro
+      const base64DataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      const base64Pure = base64DataUrl.split(',')[1];
+      const payloadText = {
+        contents: [{
+          parts: [
+            { text: `Describe en español el contenido visible de esta imagen para una búsqueda semántica. Identifica los objetos y transcribe el texto legible. No inventes detalles ni añadas saludos, preguntas o sugerencias. Devuelve solo la descripción en texto plano. Título orientativo: ${text || ''}` },
+            { inlineData: { mimeType, data: base64Pure } }
+          ]
+        }]
+      };
+      const description = await invokeGeminiModel(payloadText, 'generateContent');
+      if (typeof description !== 'string' || !description.trim()) {
+        throw new Error('El modelo no devolvió una descripción válida de la imagen.');
+      }
+      const imgDescription = description.trim();
+      const vector = await rcg.ai.gemini.handleTextEmbedding(imgDescription, 'RETRIEVAL_DOCUMENT');
+      if (!Array.isArray(vector) || !vector.length ||
+          !vector.every((value) => typeof value === 'number' && Number.isFinite(value)) ||
+          !vector.some((value) => value !== 0)) {
+        throw new Error(vector?.error || 'El modelo no devolvió un vector numérico válido.');
+      }
+
+      // 5. Retornar el objeto con la estructura solicitada
+      return {
+        url: new URL(imageUrl).pathname,
+        text: imgDescription,
+        vector: vector
+      };
+
+    } catch (error) {
+      console.error("rcg.ai.gemini.handleEmbedding Error:", error);
+      return { error: `Error procesando la petición: ${error.message}` };
+    }
+  },
+  handleTextEmbedding: async function (text, mode = 'RETRIEVAL_QUERY') {
+    try {
+      const payload = {
+        contents: [{
+          parts: [{ text }]
+        }]
+      };
+      const vector = await invokeGeminiModel(payload, 'embedContent', mode);
+      return vector;
+    } catch (error) {
+      console.error("rcg.ai.gemini.handleTextEmbedding Error:", error);
+      return { error: `Error procesando la petición: ${error.message}` };
+    }
   }
+
 };
