@@ -216,9 +216,9 @@
           </div>
 
           <div class="flex items-center gap-2">
-            <input id="ti-software" type="checkbox" />
-            <label for="ti-software" class="cursor-pointer">
-              <img src="/images/ti-software.png" alt="Errores de software IT" class="h-auto max-w-full rounded" />
+            <input id="fire-extinguisher" type="checkbox" />
+            <label for="fire-extinguisher" class="cursor-pointer">
+              <img src="/images/fire-extinguisher.png" alt="Extintor" class="h-auto max-w-full rounded" />
             </label>
           </div>
           <div class="flex items-center gap-2">
@@ -388,6 +388,11 @@
 
     const imageEmbeddings = [];
 
+    const prompt = `
+      Rol: Eres un asistente experto en extracción de datos técnicos para sistemas de recuperación de información (RAG).
+      Tarea: Analiza la imagen adjunta y extrae toda la información textual, conceptual y visual relevante para que forme parte de una base de conocimiento orientada a responder consultas de usuarios.
+    `;
+
     async function handleGridClick(event) {
       const target = event.target;
       if (target.tagName !== 'INPUT' || target.disabled) return;
@@ -410,7 +415,7 @@
             }
           }
           if (!entry) {
-            const data = await rcg.ai.gemini.handleEmbedding(url.href, 'No muestres markdown en la respuesta. Interpreta la imagen y genera una lista de FAQ relacionadas.');
+            const data = await rcg.ai.gemini.handleEmbedding(url.href, prompt);
             if (version !== imageCollectionVersion) return;
             if (data?.error) throw new Error(data.error);
             entry = normalizeImageEmbedding(data);
@@ -500,10 +505,28 @@
       ];
     }
 
-    function rankEmbeddings(vector) {
+    function rankEmbeddings(vector) { 
+
+      const TYPE_BOOSTS = {
+        'faq': 0.0,
+        'image': 0.08 // Un pequeño empuje para nivelar la brecha multimodal con imagenes
+      };
+
       return getEmbeddingEntries()
-        .map((entry) => ({ ...entry, score: cosineSimilarity(vector, entry.vector) }))
+        .map((entry) => {
+          const rawScore = cosineSimilarity(vector, entry.vector);
+          const boost = TYPE_BOOSTS[entry.type] || 0;
+          
+          return {
+            ...entry,
+            rawScore, // Opcional: guardas el score real por si lo necesitas mostrar
+            score: Math.min(1, rawScore + boost) // Aplicamos el boost limitándolo a 1
+          };
+        })
         .sort((first, second) => second.score - first.score || first.key.localeCompare(second.key));
+      //   return getEmbeddingEntries()
+      //     .map((entry) => ({ ...entry, score: cosineSimilarity(vector, entry.vector) }))
+      //     .sort((first, second) => second.score - first.score || first.key.localeCompare(second.key));
     }
 
     function renderEmbeddings() {
@@ -528,6 +551,9 @@
           content.style = 'max-height: 150px;overflow: hidden;text-overflow: ellipsis;white-space: pre';       
         }
         content.textContent = rest.join('');
+        content.onclick = () => {
+          content.style = '';
+        };
         
 
         const score = document.createElement('p');
@@ -649,7 +675,7 @@
         if (version !== chatVersion) return;
         const contexto_recuperado_del_rag = nearest.map((entry) => entry.chunk).join('\n\n');
         const systemPrompt = `
-          Eres un asistente virtual  entusiasta y servicial. Tu misión es:
+          Eres un asistente virtual entusiasta y servicial. Tu misión es:
           - Ayudar a los usuarios resolviendo sus dudas de forma rápida y clara.
           - Sé directo y evita rodeos innecesarios. Responde siempre de forma positiva y amable en un tono "${tono}"
         `;
@@ -660,7 +686,7 @@
           2. Límites de Información: Si la respuesta no se encuentra en el contexto provisto, responde de forma simpática indicando que no tienes esa información a mano y sugiere ponerse en contacto con el equipo de soporte.
           3. Nunca inventes información.
           4. Nunca generes markdown.
-          5. Incluye la url de la fuente si se dispone de ella con el formato: @url@
+          5. Incluye la url de la fuente si se dispone de ella con el formato OBLIGATORIO ""@url@""
 
           ---
           [CONTEXTO RECUPERADO]
