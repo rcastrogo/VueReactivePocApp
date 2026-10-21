@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detección y agrupación de anomalías de temperatura</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <link href="/css/tailwind.css" rel="stylesheet">
+  <script src="/js/reactivity.global.js"></script>
+  <script src="/js/lib.js"></script>
+  <style>
+    /* Estilos adicionales para tooltips o transiciones suaves */
+    .chart-point:hover {
+      r: 6px;
+      transition: r 0.2s ease;
+    }
+  </style>
+
+  <script>
+
+    // Algoritmo K-Means para agrupar temperaturas en "K" estados (ej. Frío, Templado, Cálido)
+    function kmeansTemperatures(data, k = 3, maxIterations = 100) {
+      if (!Array.isArray(data) || data.length === 0 || !data.every(Number.isFinite)) {
+        throw new TypeError('K-Means requiere una lista de temperaturas finitas.');
+      }
+      if (!Number.isInteger(k) || k < 1 || k > data.length) {
+        throw new RangeError('El número de grupos debe estar entre 1 y el total de temperaturas.');
+      }
+
+      const sortedData = [...data].sort((a, b) => a - b);
+      let centroids = Array.from({ length: k }, (_, i) =>
+        sortedData[Math.min(data.length - 1, Math.floor((i + 0.5) * data.length / k))]
+      );
+      let assignments = new Array(data.length).fill(0);
+
+      for (let iteration = 0; iteration < maxIterations; iteration++) {
+        for (let i = 0; i < data.length; i++) {
+          assignments[i] = centroids.reduce((closest, centroid, index) =>
+            Math.abs(data[i] - centroid) < Math.abs(data[i] - centroids[closest]) ? index : closest, 0
+          );
+        }
+
+        const sums = new Array(k).fill(0);
+        const counts = new Array(k).fill(0);
+        assignments.forEach((cluster, index) => {
+          sums[cluster] += data[index];
+          counts[cluster]++;
+        });
+
+        const nextCentroids = centroids.map((centroid, index) =>
+          counts[index] === 0 ? centroid : sums[index] / counts[index]
+        );
+        const converged = nextCentroids.every((centroid, index) =>
+          Math.abs(centroid - centroids[index]) < 1e-6
+        );
+        centroids = nextCentroids;
+        if (converged) break;
+      }
+
+      const orderedClusters = centroids
+        .map((centroid, index) => ({ centroid, index }))
+        .sort((a, b) => a.centroid - b.centroid);
+      const clusterOrder = new Array(k);
+      orderedClusters.forEach((cluster, index) => {
+        clusterOrder[cluster.index] = index;
+      });
+      assignments = data.map(value => centroids.reduce((closest, centroid, index) =>
+        Math.abs(value - centroid) < Math.abs(value - centroids[closest]) ? index : closest, 0
+      ));
+
+      return {
+        assignments: assignments.map(cluster => clusterOrder[cluster]),
+        centroids: orderedClusters.map(cluster => cluster.centroid)
+      };
+    }
+
+    // === EJEMPLO DE USO ===
+    // const temperaturas = [20, 21, 19, 46, -8, 22, 20, 43.8, 18, -0.5]; // Datos mezclados de tu tabla
+    // const resultadoKMeans = kmeansTemperatures(temperaturas, 3);
+    // console.log("Estados detectados (Centros):", resultadoKMeans.centroids);
+
+
+
+    // Modelo de Detección de Anomalías Gaussiana
+    function detectAnomaliesGaussian(data, epsilonPercentile = 0.025) {
+      if (!Array.isArray(data) || !data.every(Number.isFinite)) {
+        throw new TypeError('La detección gaussiana requiere una lista de temperaturas finitas.');
+      }
+      if (data.length === 0) return [];
+      if (!Number.isFinite(epsilonPercentile) || epsilonPercentile < 0 || epsilonPercentile > 1) {
+        throw new RangeError('El percentil debe estar entre 0 y 1.');
+      }
+
+      const mean = data.reduce((sum, value) => sum + value, 0) / data.length;
+      const variance = data.reduce((sum, value) => sum + Math.pow(value - mean, 2), 0) / data.length;
+      const safeVariance = variance || 0.0001;
+      const calculateProbability = value =>
+        Math.exp(-Math.pow(value - mean, 2) / (2 * safeVariance)) /
+        Math.sqrt(2 * Math.PI * safeVariance);
+      const probabilities = data.map(valor => ({
+        valor,
+        prob: calculateProbability(valor)
+      }));
+
+      if (variance === 0) {
+        return probabilities.map(item => ({
+          valor: item.valor,
+          probabilidad: item.prob,
+          esAnomalia: false
+        }));
+      }
+
+      const sortedProbabilities = [...probabilities].sort((a, b) => a.prob - b.prob);
+      const cutoffIndex = Math.max(0, Math.min(
+        Math.ceil(data.length * epsilonPercentile) - 1,
+        data.length - 1
+      ));
+      const epsilonThreshold = sortedProbabilities[cutoffIndex].prob;
+
+      return probabilities.map(item => ({
+        valor: item.valor,
+        probabilidad: item.prob,
+        esAnomalia: item.prob <= epsilonThreshold
+      }));
+    }
+
+    // === EJEMPLO DE USO ===
+    // const historialTemperaturas = [20, 20.5, 19.8, 21, 20.2, 19.5, 46, -8, 20.1, 43.8]; 
+    // const registrosAnomalies = detectAnomaliesGaussian(historialTemperaturas, 0.05); // 5% de datos más raros
+    // console.log("\n--- REGISTRO GAUSSIANO ---");
+    // registrosAnomalies.forEach(r => {
+    //     if(r.esAnomalia) console.log(`¡Anomalía detectada! Valor: ${r.valor}°C (Probabilidad: ${r.probabilidad.toFixed(6)})`);
+    // });
+
+
+    function detectAnomaliesRollingStrict(data, windowSize = 8, threshold = 2.2) {
+      const results = [];
+      if (data.length === 0) return results;
+
+      results.push({
+        index: 0,
+        value: data[0],
+        mean: data[0],
+        upperBound: data[0],
+        lowerBound: data[0],
+        isAnomalous: false
+      });
+
+      for (let i = 1; i < data.length; i++) {
+        const currentValue = data[i];
+        const start = Math.max(0, i - windowSize);
+        const win = data.slice(start, i);
+
+        const mean = win.reduce((acc, val) => acc + val, 0) / win.length;
+        const variance = win.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / win.length;
+        const stdDev = Math.sqrt(variance);
+
+        const zScore = stdDev === 0 ? 0 : (currentValue - mean) / stdDev;
+        const upperBound = mean + (threshold * stdDev);
+        const lowerBound = mean - (threshold * stdDev);
+
+        results.push({
+          index: i,
+          value: currentValue,
+          mean: Number(mean.toFixed(2)),
+          upperBound: Number(upperBound.toFixed(2)),
+          lowerBound: Number(lowerBound.toFixed(2)),
+          isAnomalous: Math.abs(zScore) > threshold
+        });
+      }
+      return results;
+    }
+
+    // Generador de datos con tendencia suave + picos anómalos aleatorios
+    function generateTemperatureDataset(count = 200) {
+      const data = [];
+      let currentTemp = 18;
+      for (let i = 0; i < count; i++) {
+        // Añadir onda senoidal suave y ruido pequeño
+        const base = 18 + 10 * Math.sin(i / 15);
+        const noise = (Math.random() - 0.5) * 3;
+        currentTemp = base + noise;
+
+        // Anomalías aleatorias con una probabilidad del 5%
+        if (Math.random() < 0.05) {
+          currentTemp += (Math.random() > 0.5 ? 22 : -20);
+        }
+
+        // Asegurar límites realistas pero permitiendo que rebasen -5 y 42
+        const val = Math.max(-8, Math.min(46, currentTemp));
+        data.push(Number(val.toFixed(1)));
+      }
+      return data;
+    }
+
+    let dataset = [];
+    let analysisResults = [];
+    const clusterColors = ['#0000FF', '#FF0000', '#FFFF00'];
+
+    function runAnalysis() {
+      const method = document.getElementById('detectionMethod').value;
+      const requestedWindowSize = parseInt(document.getElementById('windowSize').value, 10);
+      const requestedThreshold = parseFloat(document.getElementById('threshold').value);
+      const requestedEpsilon = parseFloat(document.getElementById('epsilonPercentile').value);
+      const requestedClusterCount = parseInt(document.getElementById('clusterCount').value, 10);
+      const windowSize = Math.max(3, Math.min(30, Number.isFinite(requestedWindowSize) ? requestedWindowSize : 8));
+      const threshold = Math.max(1, Math.min(5, Number.isFinite(requestedThreshold) ? requestedThreshold : 2.2));
+      const epsilonPercentile = Math.max(0.5, Math.min(20, Number.isFinite(requestedEpsilon) ? requestedEpsilon : 5)) / 100;
+      const clusterCount = Math.max(2, Math.min(6, Number.isFinite(requestedClusterCount) ? requestedClusterCount : 3));
+      dataset = generateTemperatureDataset(200);
+      const clustering = kmeansTemperatures(dataset, Math.min(clusterCount, dataset.length));
+
+      if (method === 'gaussian') {
+        const gaussianResults = detectAnomaliesGaussian(dataset, epsilonPercentile);
+        analysisResults = gaussianResults.map((result, index) => ({
+          index,
+          value: result.valor,
+          mean: null,
+          lowerBound: null,
+          upperBound: null,
+          isAnomalous: result.esAnomalia,
+          probability: result.probabilidad,
+          cluster: clustering.assignments[index],
+          centroid: clustering.centroids[clustering.assignments[index]]
+        }));
+      } else {
+        analysisResults = detectAnomaliesRollingStrict(dataset, windowSize, threshold)
+          .map((result, index) => ({
+            ...result,
+            probability: null,
+            cluster: clustering.assignments[index],
+            centroid: clustering.centroids[clustering.assignments[index]]
+          }));
+      }
+
+      updateDetectionControls();
+      renderChart();
+      renderClusterChart();
+      renderStats();
+    }
+
+    function updateDetectionControls() {
+      const isGaussian = document.getElementById('detectionMethod').value === 'gaussian';
+      document.getElementById('rollingControls').hidden = isGaussian;
+      document.getElementById('gaussianControls').hidden = !isGaussian;
+      document.getElementById('detectionDescription').textContent = isGaussian
+        ? 'Detección gaussiana según la probabilidad de cada lectura.'
+        : 'Detección estricta de anomalías mediante ventana móvil rodante.';
+      document.getElementById('chartBandLegend').hidden = isGaussian;
+    }
+
+    function renderChart() {
+      const svg = document.getElementById('anomalyChart');
+      if (!svg) return;
+
+      const width = 900;
+      const height = 320;
+      const padding = 40;
+
+      svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+      svg.innerHTML = '';
+
+      if (analysisResults.length === 0) return;
+
+      // Encontrar rangos min/max para escalar coordenadas
+      const allValues = analysisResults.flatMap(d =>
+        [d.value, d.upperBound, d.lowerBound].filter(Number.isFinite)
+      );
+      const minVal = Math.min(...allValues, -5);
+      const maxVal = Math.max(...allValues, 45);
+
+      const getX = (i) => padding + (i / (analysisResults.length - 1)) * (width - padding * 2);
+      const getY = (val) => height - padding - ((val - minVal) / (maxVal - minVal)) * (height - padding * 2);
+
+      // 1. Dibujar líneas de rejilla de referencia
+      for (let v = Math.ceil(minVal / 10) * 10; v <= maxVal; v += 10) {
+        const y = getY(v);
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', padding);
+        line.setAttribute('y1', y);
+        line.setAttribute('x2', width - padding);
+        line.setAttribute('y2', y);
+        line.setAttribute('stroke', '#e2e8f0');
+        line.setAttribute('stroke-dasharray', '4 4');
+        svg.appendChild(line);
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', padding - 8);
+        text.setAttribute('y', y + 4);
+        text.setAttribute('font-size', '10');
+        text.setAttribute('fill', '#64748b');
+        text.setAttribute('text-anchor', 'end');
+        text.textContent = `${v}°C`;
+        svg.appendChild(text);
+      }
+
+      // 2. Construir área de la banda superior e inferior (Shaded Confidence Band)
+      if (analysisResults.every(d => Number.isFinite(d.upperBound) && Number.isFinite(d.lowerBound))) {
+        const upperPoints = [];
+        const lowerPointsReversed = [];
+        analysisResults.forEach((d, i) => {
+          const x = getX(i);
+          upperPoints.push(`${x},${getY(d.upperBound)}`);
+          lowerPointsReversed.unshift(`${x},${getY(d.lowerBound)}`);
+        });
+
+        const bandPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        bandPath.setAttribute('d', `M ${upperPoints.join(' L ')} L ${lowerPointsReversed.join(' L ')} Z`);
+        bandPath.setAttribute('fill', 'rgba(203, 213, 225, 0.4)');
+        svg.appendChild(bandPath);
+      }
+
+      // 3. Dibujar línea principal de valores de temperatura
+      let linePathData = '';
+      analysisResults.forEach((d, i) => {
+        const x = getX(i);
+        const y = getY(d.value);
+        linePathData += (i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`);
+      });
+
+      const mainLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      mainLine.setAttribute('d', linePathData);
+      mainLine.setAttribute('fill', 'none');
+      mainLine.setAttribute('stroke', '#0284c7');
+      mainLine.setAttribute('stroke-width', '2');
+      svg.appendChild(mainLine);
+
+      // 4. Dibujar puntos (círculos) y resaltar anomalías en rojo
+      analysisResults.forEach((d, i) => {
+        const x = getX(i);
+        const y = getY(d.value);
+
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', x);
+        circle.setAttribute('cy', y);
+        circle.setAttribute('r', d.isAnomalous ? '4.5' : '2');
+        circle.setAttribute('fill', d.isAnomalous ? '#ef4444' : clusterColors[d.cluster % clusterColors.length]);
+        circle.setAttribute('class', 'chart-point transition-all duration-150 cursor-pointer');
+
+        const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+        const detectionDetail = d.probability === null
+          ? `Media: ${d.mean}°C | Rango: [${d.lowerBound}, ${d.upperBound}]`
+          : `Probabilidad: ${d.probability.toExponential(3)}`;
+        title.textContent = `Índice: ${i} | Temp: ${d.value}°C | Grupo ${d.cluster + 1} (centroide: ${d.centroid.toFixed(1)}°C) | ${detectionDetail}${d.isAnomalous ? ' | ANOMALÍA' : ''}`;
+        circle.appendChild(title);
+
+        svg.appendChild(circle);
+      });
+
+      const clusterLegend = document.getElementById('clusterLegend');
+      clusterLegend.innerHTML = '';
+      const centroids = [...new Map(analysisResults.map(result =>
+        [result.cluster, result.centroid]
+      )).entries()].sort((a, b) => a[0] - b[0]);
+      centroids.forEach(([cluster, centroid]) => {
+        const item = document.createElement('span');
+        item.className = 'flex items-center gap-1.5';
+        const marker = document.createElement('span');
+        marker.className = 'inline-block size-3 rounded-full';
+        marker.style.backgroundColor = clusterColors[cluster % clusterColors.length];
+        item.append(marker, document.createTextNode(`Grupo ${cluster + 1} (${centroid.toFixed(1)}°C)`));
+        clusterLegend.appendChild(item);
+      });
+    }
+
+    function renderClusterChart() {
+      const svg = document.getElementById('clusterChart');
+      if (!svg) return;
+
+      const width = 900;
+      const height = 520;
+      const center = { x: width / 2, y: height / 2 };
+      const clusterOrbitRadius = 70;
+      const centerRadius = 155;
+      const createSvgElement = name => document.createElementNS('http://www.w3.org/2000/svg', name);
+      const clusters = [...new Map(analysisResults.map(result =>
+        [result.cluster, { id: result.cluster, centroid: result.centroid, points: [] }]
+      )).values()];
+      clusters.forEach(cluster => {
+        cluster.points = analysisResults.filter(result => result.cluster === cluster.id);
+      });
+
+      svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+      svg.innerHTML = '';
+      if (clusters.length === 0) return;
+
+      const positions = new Map();
+      clusters.forEach((cluster, index) => {
+        let angle;
+        let x;
+        let y;
+        if (clusters.length === 3) {
+          const triangle = [
+            { x: center.x, y: center.y - centerRadius },
+            { x: center.x - centerRadius * 0.9, y: center.y + centerRadius * 0.55 },
+            { x: center.x + centerRadius * 0.9, y: center.y + centerRadius * 0.55 }
+          ];
+          ({ x, y } = triangle[index]);
+        } else {
+          angle = -Math.PI / 2 + (index * 2 * Math.PI) / clusters.length;
+          x = center.x + Math.cos(angle) * centerRadius;
+          y = center.y + Math.sin(angle) * centerRadius;
+        }
+        positions.set(cluster.id, { x, y });
+      });
+
+      clusters.forEach(cluster => {
+        const { x, y } = positions.get(cluster.id);
+        const color = clusterColors[cluster.id % clusterColors.length];
+        const maxDistance = Math.max(...cluster.points.map(point =>
+          Math.abs(point.value - cluster.centroid)
+        ), 1e-6);
+
+        const orbit = createSvgElement('circle');
+        orbit.setAttribute('cx', x);
+        orbit.setAttribute('cy', y);
+        orbit.setAttribute('r', clusterOrbitRadius);
+        orbit.setAttribute('fill', color);
+        orbit.setAttribute('fill-opacity', '0.06');
+        orbit.setAttribute('stroke', color);
+        orbit.setAttribute('stroke-opacity', '0.55');
+        orbit.setAttribute('stroke-dasharray', '5 7');
+        orbit.setAttribute('stroke-width', '1.5');
+        svg.appendChild(orbit);
+
+        cluster.points.forEach((result, pointIndex) => {
+          const angle = -Math.PI / 2 + (pointIndex * 2 * Math.PI) / cluster.points.length;
+          const distance = Math.abs(result.value - cluster.centroid);
+          const radius = 15 + (distance / maxDistance) * (clusterOrbitRadius - 15);
+          const pointX = x + Math.cos(angle) * radius;
+          const pointY = y + Math.sin(angle) * radius;
+          const point = createSvgElement(cluster.id % 3 === 0 ? 'circle' : 'polygon');
+
+          if (cluster.id % 3 === 0) {
+            point.setAttribute('cx', pointX);
+            point.setAttribute('cy', pointY);
+            point.setAttribute('r', '4.5');
+          } else {
+            const halfSize = 4.5;
+            const points = cluster.id % 3 === 1
+              ? `${pointX - halfSize},${pointY - halfSize} ${pointX + halfSize},${pointY - halfSize} ${pointX + halfSize},${pointY + halfSize} ${pointX - halfSize},${pointY + halfSize}`
+              : `${pointX},${pointY - halfSize} ${pointX + halfSize},${pointY} ${pointX},${pointY + halfSize} ${pointX - halfSize},${pointY}`;
+            point.setAttribute('points', points);
+          }
+          point.setAttribute('fill', color);
+          point.setAttribute('stroke', result.isAnomalous ? '#FFFFFF' : '#09090B');
+          point.setAttribute('stroke-width', result.isAnomalous ? '2.5' : '1');
+          const title = createSvgElement('title');
+          title.textContent = `Lectura #${result.index}: ${result.value}°C | Grupo ${cluster.id + 1} | Distancia al centroide: ${distance.toFixed(1)}°C${result.isAnomalous ? ' | Anomalía' : ''}`;
+          point.appendChild(title);
+          svg.appendChild(point);
+        });
+
+        const core = createSvgElement('circle');
+        core.setAttribute('cx', x);
+        core.setAttribute('cy', y);
+        core.setAttribute('r', '13');
+        core.setAttribute('fill', '#09090B');
+        core.setAttribute('stroke', color);
+        core.setAttribute('stroke-width', '4');
+        svg.appendChild(core);
+
+        const centerMark = createSvgElement('path');
+        centerMark.setAttribute('d', `M ${x - 6} ${y} H ${x + 6} M ${x} ${y - 6} V ${y + 6}`);
+        centerMark.setAttribute('stroke', '#FFFFFF');
+        centerMark.setAttribute('stroke-width', '2');
+        centerMark.setAttribute('stroke-linecap', 'round');
+        svg.appendChild(centerMark);
+
+        const label = createSvgElement('text');
+        label.setAttribute('x', x);
+        label.setAttribute('y', y + clusterOrbitRadius + 22);
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('font-size', '14');
+        label.setAttribute('font-weight', '700');
+        label.setAttribute('fill', color);
+        label.textContent = `GRUPO ${cluster.id + 1} · ${cluster.centroid.toFixed(1)}°C`;
+        svg.appendChild(label);
+      });
+    }
+
+    function renderStats() {
+      const anomalies = analysisResults.filter(d => d.isAnomalous);
+      document.getElementById('totalCount').textContent = analysisResults.length;
+      document.getElementById('anomalyCount').textContent = anomalies.length;
+
+      const tbody = document.getElementById('anomaliesTableBody');
+      tbody.innerHTML = '';
+
+      if (anomalies.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-4 text-center text-slate-500">No se detectaron anomalías con los parámetros actuales.</td></tr>`;
+        return;
+      }
+
+      anomalies.forEach(a => {
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-slate-100 hover:bg-slate-50/80';
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 font-mono text-xs text-slate-600">#${a.index}</td>
+          <td class="py-2.5 px-3 font-semibold text-red-600">${a.value}°C</td>
+          <td class="py-2.5 px-3 text-slate-600">Grupo ${a.cluster + 1}</td>
+          <td class="py-2.5 px-3 text-slate-600">${a.probability === null ? `${a.mean}°C` : a.probability.toExponential(3)}</td>
+          <td class="py-2.5 px-3 font-mono text-xs text-slate-500">${a.probability === null ? `[${a.lowerBound}, ${a.upperBound}]` : 'Probabilidad'}</td>
+          <td class="py-2.5 px-3"><span class="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">Anómalo</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function initAll() {
+      runAnalysis();
+    }
+
+    rcg.onReady(initAll);
+  </script>
+</head>
+
+<body class="min-h-dvh bg-slate-50 text-slate-900" style="font-family: 'Space Grotesk', sans-serif;">
+  <main class="mx-auto flex min-h-dvh w-full max-w-360 flex-col px-3 py-4 sm:px-6 lg:px-8">
+    <header class="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4 sm:mb-6">
+      <div>
+        <p class="text-xs font-semibold tracking-[0.18em] text-teal-700">REACTIVE UI LAB</p>
+        <h1 class="mt-1 text-2xl font-bold leading-tight sm:text-3xl">Detección de Anomalías de Temperatura</h1>
+      </div>
+      <a href="/index.html" title="Inicio"
+        class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 no-underline">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" class="size-5">
+          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+          <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+        <span>Inicio</span>
+      </a>
+    </header>
+
+    <!-- Estructura de dos columnas respetando la plantilla -->
+    <div class="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(360px,0.9fr)] lg:gap-6">
+
+      <!-- Columna Izquierda: Visualización Gráfica y Controles -->
+      <section class="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-800">Monitor de Temperatura (-8°C a 46°C)</h2>
+            <p id="detectionDescription" class="text-xs text-slate-500"></p>
+          </div>
+          <button onclick="runAnalysis()"
+            class="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4">
+              <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+              <path d="M21 3v5h-5" />
+            </svg>
+            Generar y Analizar Datos
+          </button>
+        </div>
+
+        <!-- Controles de parámetros -->
+        <div class="grid grid-cols-1 gap-4 rounded-lg border border-slate-100 bg-slate-50 p-3.5 text-sm sm:grid-cols-2">
+          <div>
+            <label for="detectionMethod" class="mb-1 block text-xs font-medium text-slate-600">Método de detección:</label>
+            <select id="detectionMethod" onchange="runAnalysis()"
+              class="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500">
+              <option value="rolling">Ventana móvil (actual)</option>
+              <option value="gaussian">Distribución gaussiana</option>
+            </select>
+          </div>
+          <div>
+            <label for="clusterCount" class="mb-1 block text-xs font-medium text-slate-600">Número de grupos (K-Means):</label>
+            <input type="number" id="clusterCount" value="3" min="2" max="6" step="1" onchange="runAnalysis()"
+              class="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500">
+          </div>
+          <div id="rollingControls" class="grid grid-cols-1 gap-4 sm:col-span-2 sm:grid-cols-2">
+            <div>
+              <label for="windowSize" class="mb-1 block text-xs font-medium text-slate-600">Tamaño de ventana:</label>
+              <input type="number" id="windowSize" value="8" min="3" max="30" onchange="runAnalysis()"
+                class="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500">
+            </div>
+            <div>
+              <label for="threshold" class="mb-1 block text-xs font-medium text-slate-600">Umbral de desviación:</label>
+              <input type="number" id="threshold" value="2.2" min="1" max="5" step="0.1" onchange="runAnalysis()"
+                class="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500">
+            </div>
+          </div>
+          <div id="gaussianControls" class="sm:col-span-2" hidden>
+            <label for="epsilonPercentile" class="mb-1 block text-xs font-medium text-slate-600">Porcentaje de datos más inusuales:</label>
+            <input type="number" id="epsilonPercentile" value="5" min="0.5" max="20" step="0.5" onchange="runAnalysis()"
+              class="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500">
+          </div>
+        </div>
+
+        <!-- Contenedor del Gráfico SVG -->
+        <div
+          class="relative flex-1 rounded-lg border border-slate-200 bg-slate-900/5 p-3 flex flex-col justify-center items-center overflow-hidden min-h-[300px]">
+          <svg id="anomalyChart" class="w-full h-auto max-h-[320px] drop-br"></svg>
+          <div class="mt-2 flex flex-wrap items-center gap-4 text-xs text-slate-600">
+            <div id="clusterLegend" class="flex flex-wrap items-center gap-4"></div>
+            <span class="flex items-center gap-1.5"><span class="inline-block size-3 rounded-full bg-red-500"></span>
+              Anomalía detectada</span>
+            <span id="chartBandLegend" class="flex items-center gap-1.5"><span class="inline-block size-3 rounded bg-slate-300/60"></span>
+              Banda de confianza [Inferior, Superior]</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Columna Derecha: Resumen y Listado de Anomalías Detectadas -->
+      <section class="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-bold text-slate-800">Registro de Anomalías</h2>
+          <div class="flex gap-2 text-xs">
+            <span class="rounded-md bg-slate-100 px-2.5 py-1 font-medium text-slate-700">Total: <strong
+                id="totalCount">0</strong></span>
+            <span class="rounded-md bg-red-50 px-2.5 py-1 font-medium text-red-700">Anomalías: <strong
+                id="anomalyCount">0</strong></span>
+          </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto max-h-[420px] rounded-lg border border-slate-200">
+          <table class="w-full text-left text-sm">
+            <thead class="sticky top-0 bg-slate-100 text-xs font-semibold text-slate-600 border-b border-slate-200">
+              <tr>
+                <th class="py-2.5 px-3">Índice</th>
+                <th class="py-2.5 px-3">Valor</th>
+                <th class="py-2.5 px-3">Grupo</th>
+                <th class="py-2.5 px-3">Media / prob.</th>
+                <th class="py-2.5 px-3">Rango / métrica</th>
+                <th class="py-2.5 px-3">Estado</th>
+              </tr>
+            </thead>
+            <tbody id="anomaliesTableBody">
+              <!-- Dinámico -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="flex flex-col gap-4 rounded-xl border p-4 shadow-sm sm:p-6 lg:col-span-2"
+        style="background:#09090b;border-color:#27272a">
+        <div>
+          <h2 class="text-lg font-bold text-white">Constelación de grupos</h2>
+          <p class="text-xs text-slate-300">
+            Cada núcleo representa un grupo y su temperatura media. Los puntos se ordenan en órbita según su distancia al centroide;
+            las formas círculo, cuadrado y rombo identifican los grupos 1, 2 y 3. Un borde blanco marca las anomalías.
+          </p>
+        </div>
+        <div class="relative overflow-x-auto rounded-lg border border-zinc-700 p-2" style="background:#09090b">
+          <svg id="clusterChart" class="h-auto min-w-[640px] w-full" role="img"
+            aria-label="Gráfico radial de grupos con sus lecturas distribuidas alrededor de cada centroide"></svg>
+        </div>
+        <div class="flex flex-wrap items-center gap-4 text-xs text-slate-200">
+          <span class="flex items-center gap-1.5">
+            <span class="inline-block size-3 rounded-full" style="background:#0000FF"></span>
+            G1 · azul · círculo
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="inline-block size-3" style="background:#FF0000"></span>
+            G2 · rojo · cuadrado
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="inline-block size-3 rotate-45" style="background:#FFFF00"></span>
+            G3 · amarillo · rombo
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="inline-block size-3 rounded-full border-2 border-white" style="background:#09090b"></span>
+            Núcleo del centroide
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="inline-block size-3 rounded-full border-2 border-white" style="background:#FF0000"></span>
+            Punto anómalo
+          </span>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</body>
+
+</html>
